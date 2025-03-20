@@ -8,41 +8,14 @@ void init_square_matrix_wId(float* matrix, int size);
 void display_square_matrix_wId(float* matrix, int size);
 
 __global__ void fixRow(float *matrix, int size,int rowId){
-    __shared__ float Ri[512];
-    __shared__ float Aii;
-
     int colId = threadIdx.x;
-    Ri[colId] = matrix[size*rowId + colId];
-    Aii = matrix[size*rowId + rowId];
-    __syncthreads();//Block synchronisation barrier
-    Ri[colId] = Ri[colId]/Aii;
-    matrix[size*rowId+colId] = Ri[colId];
+    matrix[size*rowId + colId] = matrix[size*rowId + colId] / matrix[size*rowId + rowId];
 }
 
-
-
-__global__ void finishColumn(float *matrix, int wideness,int current_col){
-    int i = threadIdx.x; // What column
-    int j = blockIdx.x; //What row
-
-    
-}
-
-__global__ void fixColumn(float *matrix, int size, int colId){
-    int i = threadIdx.x;
-    int j = blockIdx.x;
-    __shared__ float col[512];
-    __shared__ float colj[512];
-    __shared__ float AColIdj;
-    col[i] = matrix[i * size + colId];
-    if(col[i]!=0){
-        colj[i] = matrix[i * size + colId];
-        AColIdj = matrix[colId * size + j];
-        if (i!= colId){
-            colj[i] = colj[i] - AColIdj * col[i];
-        }
-        matrix[i * size + j] = colj[i];
-    }
+__global__ void fixColumn(float *matrix, int wideness,int current_col){
+    int i = threadIdx.x; // What row
+    int j = blockIdx.x; //What column
+    matrix[i*wideness + j] = matrix[i*wideness + j] - (matrix[i*widenesss + current_col] / matrix[current_col * wideness + current_col]) * matrix[current_col*wideness + j];
 }
 
 int main(int argc, char** argv){
@@ -56,7 +29,7 @@ int main(int argc, char** argv){
 
     fixRow<<<1,row>>>(matrix,row,0);
     cudaDeviceSynchronize();
-    //fixColumn<<<row,col>>>(matrix,row,0);
+    fixColumn<<<row,col>>>(matrix,row,0);
     cudaDeviceSynchronize();
     display_square_matrix_wId(matrix,N);
     return 0;
