@@ -1,11 +1,9 @@
 #include <iostream>
 #include <math.h>
 #include <iomanip>
+#include <stdio.h>
+#include "gj_utils.hpp"
 
-void init_square_matrix(float* matrix, int size);
-void display_square_matrix(float* matrix, int size);
-void init_square_matrix_wId(float* matrix, int size);
-void display_square_matrix_wId(float* matrix, int size);
 
 __global__ void fixRow(float *matrix, int size,int rowId){
     int colId = threadIdx.x;
@@ -15,81 +13,53 @@ __global__ void fixRow(float *matrix, int size,int rowId){
 __global__ void fixColumn(float *matrix, int wideness,int current_col){
     int i = threadIdx.x; // What row
     int j = blockIdx.x; //What column
-    matrix[i*wideness + j] = matrix[i*wideness + j] - (matrix[i*widenesss + current_col] / matrix[current_col * wideness + current_col]) * matrix[current_col*wideness + j];
+    if(i != current_col){
+        matrix[i*wideness + j] = matrix[i*wideness + j] - (matrix[i*wideness + current_col] / matrix[current_col * wideness + current_col]) * matrix[current_col*wideness + j];
+}
 }
 
 int main(int argc, char** argv){
     std::cout << "Gauss Jordan on GPU" << std::endl;
+
+    GJ_Utils::S_Matrix m1 = GJ_Utils::S_Matrix(3);
+    m1.fill_random_U();
+    GJ_Utils::S_Matrix m2 = GJ_Utils::S_Matrix(3);
+    m2.fill_random_L();
+    GJ_Utils::S_Matrix m3 = m2.times(&m1);
+    m3.print();
+
     int N = 3;
     float *matrix;
     cudaMallocManaged(&matrix, N*(N+N)*sizeof(float));
-    init_square_matrix_wId(matrix,N);
-    int row = N*2;
-    int col = N;
 
-    fixRow<<<1,row>>>(matrix,row,0);
-    cudaDeviceSynchronize();
-    fixColumn<<<row,col>>>(matrix,row,0);
-    cudaDeviceSynchronize();
-    display_square_matrix_wId(matrix,N);
-    return 0;
-}
+    GJ_Utils::GJ_Matrix gjm1 =  GJ_Utils::GJ_Matrix(matrix,&m3);
+    gjm1.print();
 
-
-void init_square_matrix(float* matrix, int size){
-    for(int i=0;i<size*size;i++){
-        matrix[i] = i + 4;
-    }   
-}
-
-void init_square_matrix_wId(float* matrix, int size){
-    for(int i=0;i<size;i++){
-        for(int k=0;k<size;k++){
-            matrix[i*size*2 + k] = i + 4;
-        }
-    }   
-    for(int s=0;s<size;s++){
-        for(int m=0;m<size;m++){
-            if(s == m)
-                matrix[s*size*2+ m + size] = 1;
-            else
-                matrix[s*size*2+ m + size ] = 0;
-        }
+    
+    int col = N*2;
+    int row = N;
+    for(int l=0;l<row;l++){
+        gjm1.print();
+        fixRow<<<1,col>>>(matrix,col,l);
+        cudaDeviceSynchronize();
+        gjm1.print();
+        fixColumn<<<row,col>>>(matrix,col,l);
+        cudaDeviceSynchronize();
     }
-}
+    gjm1.print();
+    GJ_Utils::S_Matrix ls = gjm1.get_right_side(); 
+    std::cout << "is_inverse : " << ls.is_inverse(&m3) <<std::endl;
 
 
-void display_square_matrix(float* matrix, int size){
-    for(int i=0;i<size*size;i++){
-        if(i == 0){
-            std::cout << "[ ";
-        }
-        std::cout << std::setw(4) << std::setfill(' ') << std::setprecision(3)<< matrix[i] << " ";
-        if(i==size*size-1){
-            std::cout << "]" << std::endl;
-        }
-        else if((i+1)%size==0 && i!=0){
-            std::cout << std::endl<< "  ";
-        }
-    } 
+    float result[9] = {331.0f / 400, 51.0f / 50, 9.0f / 100, 
+        51.0f / 50, 34.0f / 25, 3.0f / 25, 
+        9.0f / 100, 3.0f / 25, 1.0f / 25};
 
-} 
+    GJ_Utils::S_Matrix m_result = GJ_Utils::S_Matrix(result,3);
 
-void display_square_matrix_wId(float* matrix, int size){
-    for(int i=0;i<size*(size*2);i++){
-        if(i == 0){
-            std::cout << "[ ";
-        }
-        std::cout << std::setw(4) << std::setfill(' ') << std::setprecision(3)<< matrix[i] << " ";
-        
-        if(i==(size*2)*size-1){
-            std::cout << "]" << std::endl;
-        }
-        else if((i+1)%(size*2)==0 && i!=0){
-            std::cout << std::endl<< "  ";
-        }else if((i+1)%(size)==0 && i!=0){
-            std::cout << " | ";
-        }
-    } 
+    std::cout << "is_inverse : " << m_result.is_inverse(&m3) <<std::endl;
 
+
+
+    return 0;
 } 
