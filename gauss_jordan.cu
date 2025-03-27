@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <stdio.h>
 #include "gj_utils.hpp"
+#include <cmath>
 
 
 
@@ -46,15 +47,34 @@ __global__ void myfixColumn(double *matrix, int size, int colId){
     }
 }
 
+
+__global__ void perform_swap(double *matrix, int size, int colId,int swapId){
+    int col_x = threadIdx.x;
+    double toswap = matrix[colId*size+col_x];
+    matrix[colId*size+col_x] = matrix[swapId*size+col_x];
+    matrix[swapId*size+col_x] = toswap;
+}
+
 int main(int argc, char** argv){
     std::cout << "Gauss Jordan on GPU" << std::endl;
-    int N = 10;
-
+    int N = 5;
+    bool with_swap = false;
+    bool debug = false;
+    if(argc == 4){
+        N = std::atoi(argv[1]);
+        if((strcmp(argv[2], "1") == 0)){
+            with_swap = true;
+        }
+        if((strcmp(argv[3], "1") == 0)){
+            debug = true;
+        }
+    }
     GJ_Utils::S_Matrix m1 = GJ_Utils::S_Matrix(N);
     m1.fill_random_U();
     GJ_Utils::S_Matrix m2 = GJ_Utils::S_Matrix(N);
     m2.fill_random_L();
     GJ_Utils::S_Matrix m3 = m2.times(&m1);
+    std::cout<<"Base matrix : "<<std::endl;
     m3.print();
 
     double *matrix;
@@ -67,18 +87,39 @@ int main(int argc, char** argv){
     int col = N*2;
     int row = N;
     for(int l=0;l<row;l++){
+        if(with_swap){
+            double max = std::fabs(matrix[l*col+l]);
+            int swapId;
+            for(int i=l+1;i<row;i++){
+            if(std::fabs(matrix[i*col+l]) > max){
+                max = std::fabs(matrix[i*col+l]);
+                swapId = i;
+            }
+            }
+            if(max>std::fabs(matrix[l*col+l])){
+                if(debug)
+                    std::cout <<"Swapping row "<< l<< " and "<<swapId <<std::endl;
+                perform_swap<<<1,col>>>(matrix,col,l,swapId);
+                cudaDeviceSynchronize();
+            }
+        }
         fixRow<<<1,col>>>(matrix,col,l);
         cudaDeviceSynchronize();
-        //gjm1.print();
         myfixColumn<<<row,col>>>(matrix,col,l);
         cudaDeviceSynchronize();
-        //gjm1.print();
+        if(debug){
+            std::cout<<"Row "<<l<<std::endl;
+            gjm1.print();
+        }
     }
+
+    std::cout<<"Matrix after Gj: "<<std::endl;
     gjm1.print();
-    GJ_Utils::S_Matrix ls = gjm1.get_right_side(); 
+
+    GJ_Utils::S_Matrix ls = gjm1.get_right_side();
     auto [inv,max_error] = ls.is_inverse(&m3);
     std::cout << "My method is inverse : " << inv << " With max error : "<< max_error <<std::endl;
-    if(!inv){
+    if(!inv && debug){
         GJ_Utils::S_Matrix invt = ls.times(&m3);
         invt.print();
     }
