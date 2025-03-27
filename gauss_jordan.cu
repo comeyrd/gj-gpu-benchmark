@@ -76,13 +76,12 @@ int main(int argc, char** argv){
     }
     gjm1.print();
     GJ_Utils::S_Matrix ls = gjm1.get_right_side(); 
-    bool inv = ls.is_inverse(&m3);
-    std::cout << "My method is inverse : " << inv <<std::endl;
+    auto [inv,max_error] = ls.is_inverse(&m3);
+    std::cout << "My method is inverse : " << inv << " With max error : "<< max_error <<std::endl;
     if(!inv){
         GJ_Utils::S_Matrix invt = ls.times(&m3);
         invt.print();
     }
-
-
+    
     return 0;
 } 

@@ -84,25 +84,30 @@ S_Matrix S_Matrix::times(const S_Matrix* m2){
     return res;
 }
 
-bool S_Matrix::is_inverse(const S_Matrix *inverse){
+std::tuple<bool,double> S_Matrix::is_inverse(const S_Matrix *inverse){
     S_Matrix m = this->times(inverse);
     bool ret = true;
+    double max_error = 0;
     for (int i = 0; i < this->rows; ++i) {
         for (int j = 0; j < this->cols; ++j) {
+            double min = -ACCEPTED_MIN;
+            double max = ACCEPTED_MIN;
+            double value = m.data[i*this->cols+j];
             if (i == j) {
-                if(m.data[i*this->cols+j]>= 1+ACCEPTED_MIN || m.data[i*this->cols+j] <= 1-ACCEPTED_MIN  ){
-                    std::cout<< m.data[i*this->cols+j] << "supposed to be 1"<<std::endl;
-                    ret = false;
-                }
-            } else {
-                if(m.data[i*this->cols+j]>= ACCEPTED_MIN ||m.data[i*this->cols+j] <= -ACCEPTED_MIN ){
-                    std::cout<< m.data[i*this->cols+j] << "supposed to be 0"<<std::endl;
-                    ret = false;
-                }
+              value -= 1;
+            }
+            if(value<0){
+                value*=-1;
+            }
+            if(value > ACCEPTED_MIN){
+                ret = false;
+            }
+            if(value > max_error){
+                max_error = value;
             }
         }
     }
-    return ret;
+    return std::make_tuple(ret,max_error);
 }
 
 GJ_Matrix::GJ_Matrix(double* allocated,S_Matrix* matrix) : Matrix(allocated,matrix->rows, matrix->cols * 2) {

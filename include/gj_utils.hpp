@@ -1,5 +1,6 @@
 #ifndef GJ_UTILS_HPP  
 #define  GJ_UTILS_HPP
+#include <tuple>
 
 namespace GJ_Utils{
 
@@ -23,7 +24,7 @@ namespace GJ_Utils{
             void fill_random_L();
             void fill_random_U();
             S_Matrix times(const S_Matrix *m2);
-            bool is_inverse(const S_Matrix *inverse);
+            std::tuple<bool,double> is_inverse(const S_Matrix *inverse);
     };
     
     class GJ_Matrix : public Matrix {
