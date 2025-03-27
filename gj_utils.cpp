@@ -6,12 +6,12 @@
 
 int LOWER_LIMIT = -5;
 int UPPER_LIMIT = 5;
-float ACCEPTED_MIN = 1e-5f;
+double ACCEPTED_MIN = 0.002;
 using namespace GJ_Utils;
 
 Matrix::Matrix(int rows, int cols) : rows(rows), cols(cols) {
     owns_data = true;
-    data = new float[rows * cols]();  // Allocate and initialize to zero
+    data = new double[rows * cols]();  // Allocate and initialize to zero
 }
 
 Matrix::~Matrix() {
@@ -19,7 +19,7 @@ Matrix::~Matrix() {
         delete[] data;
 }
 
-float& Matrix::at(int row, int col){
+double& Matrix::at(int row, int col){
     return data[row * cols + col]; 
 }
 
@@ -44,7 +44,7 @@ void S_Matrix::fill_random_L(){
     int random_number = dis(gen);
     for(int i=0;i<this->cols;i++){
         for(int j=0;j<=i;j++){
-            float random_nbr = dis(gen);
+            double random_nbr = dis(gen);
             if (i == j&&random_nbr==0){
                 random_nbr +=1;
             }
@@ -59,7 +59,7 @@ void S_Matrix::fill_random_U(){
     int random_number = dis(gen);
     for(int i=0;i < this->rows;i++){
         for(int j=i ;j<this->cols;j++){
-            float random_nbr = dis(gen);
+            double random_nbr = dis(gen);
             if (i == j&&random_nbr==0){
                 random_nbr +=1;
             }
@@ -86,16 +86,17 @@ S_Matrix S_Matrix::times(const S_Matrix* m2){
 
 bool S_Matrix::is_inverse(const S_Matrix *inverse){
     S_Matrix m = this->times(inverse);
-    m.print();
     bool ret = true;
     for (int i = 0; i < this->rows; ++i) {
         for (int j = 0; j < this->cols; ++j) {
             if (i == j) {
-                if(m.data[i*this->cols+j]> 1+ACCEPTED_MIN ||m.data[i*this->cols+j]< 1-ACCEPTED_MIN  ){
+                if(m.data[i*this->cols+j]>= 1+ACCEPTED_MIN || m.data[i*this->cols+j] <= 1-ACCEPTED_MIN  ){
+                    std::cout<< m.data[i*this->cols+j] << "supposed to be 1"<<std::endl;
                     ret = false;
                 }
             } else {
-                if(m.data[i*this->cols+j]>ACCEPTED_MIN ||m.data[i*this->cols+j] < -ACCEPTED_MIN ){
+                if(m.data[i*this->cols+j]>= ACCEPTED_MIN ||m.data[i*this->cols+j] <= -ACCEPTED_MIN ){
+                    std::cout<< m.data[i*this->cols+j] << "supposed to be 0"<<std::endl;
                     ret = false;
                 }
             }
@@ -104,7 +105,7 @@ bool S_Matrix::is_inverse(const S_Matrix *inverse){
     return ret;
 }
 
-GJ_Matrix::GJ_Matrix(float* allocated,S_Matrix* matrix) : Matrix(allocated,matrix->rows, matrix->cols * 2) {
+GJ_Matrix::GJ_Matrix(double* allocated,S_Matrix* matrix) : Matrix(allocated,matrix->rows, matrix->cols * 2) {
     for (int i = 0; i < matrix->rows; ++i) {
         for (int j = 0; j < matrix->cols; ++j) {
             this->data[i * this->cols + j] = matrix->data[i * matrix->cols + j];
@@ -149,7 +150,7 @@ void GJ_Matrix::print(){
         std::cout << std::setw(4) << std::setfill(' ') << std::setprecision(3)<< this->data[i] << " ";
         
         if(i == this->rows*this->cols-1){
-            std::cout << "]" << std::endl;
+            std::cout << "]" << std::endl<<std::endl;
         }
         else if((i+1)%(this->cols)==0 && i!=0){
             std::cout << std::endl<< "  ";
