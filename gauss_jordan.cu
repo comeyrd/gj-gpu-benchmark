@@ -74,9 +74,10 @@ int main(int argc, char** argv){
     GJ_Utils::S_Matrix m2 = GJ_Utils::S_Matrix(N);
     m2.fill_random_L();
     GJ_Utils::S_Matrix m3 = m2.times(&m1);
-    std::cout<<"Base matrix : "<<std::endl;
-    m3.print();
-
+    if(debug){
+        std::cout<<"Base matrix : "<<std::endl;
+        m3.print();
+    }
     double *matrix;
     cudaMallocManaged(&matrix, N*(N+N)*sizeof(double));
 
@@ -112,10 +113,10 @@ int main(int argc, char** argv){
             gjm1.print();
         }
     }
-
-    std::cout<<"Matrix after Gj: "<<std::endl;
-    gjm1.print();
-
+    if(debug){
+        std::cout<<"Matrix after Gj: "<<std::endl;
+        gjm1.print();
+    }
     GJ_Utils::S_Matrix ls = gjm1.get_right_side();
     auto [inv,max_error] = ls.is_inverse(&m3);
     std::cout << "My method is inverse : " << inv << " With max error : "<< max_error <<std::endl;

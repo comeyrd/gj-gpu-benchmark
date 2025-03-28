@@ -2,12 +2,14 @@
 #include <iostream>
 #include <iomanip>
 #include <stdio.h>
-#include <random>
 
-int LOWER_LIMIT = -5;
-int UPPER_LIMIT = 5;
 double ACCEPTED_MIN = 0.002;
 using namespace GJ_Utils;
+
+namespace GJ_Utils {
+    std::mutex Random_Number_Gen::mtx;
+    Random_Number_Gen* Random_Number_Gen::instance = nullptr;
+}
 
 Matrix::Matrix(int rows, int cols) : rows(rows), cols(cols) {
     owns_data = true;
@@ -39,12 +41,10 @@ void Matrix::print(){
 }
 
 void S_Matrix::fill_random_L(){
-    std::default_random_engine gen;  
-    std::uniform_int_distribution<> dis(LOWER_LIMIT, UPPER_LIMIT);
-    int random_number = dis(gen);
+    Random_Number_Gen* gen = Random_Number_Gen::engine();
     for(int i=0;i<this->cols;i++){
         for(int j=0;j<=i;j++){
-            double random_nbr = dis(gen);
+            double random_nbr = gen->generate();
             if (i == j&&random_nbr==0){
                 random_nbr +=1;
             }
@@ -54,12 +54,10 @@ void S_Matrix::fill_random_L(){
 }
 
 void S_Matrix::fill_random_U(){
-    std::default_random_engine gen;  
-    std::uniform_int_distribution<> dis(LOWER_LIMIT, UPPER_LIMIT);
-    int random_number = dis(gen);
+    Random_Number_Gen* gen = Random_Number_Gen::engine();
     for(int i=0;i < this->rows;i++){
         for(int j=i ;j<this->cols;j++){
-            double random_nbr = dis(gen);
+            double random_nbr = gen->generate();
             if (i == j&&random_nbr==0){
                 random_nbr +=1;
             }

@@ -1,8 +1,11 @@
 #ifndef GJ_UTILS_HPP  
 #define  GJ_UTILS_HPP
 #include <tuple>
+#include <mutex>
+#include <random>
 
 namespace GJ_Utils{
+
 
     class Matrix {
         private:
@@ -35,7 +38,33 @@ namespace GJ_Utils{
             S_Matrix get_right_side();
             S_Matrix get_left_side();
     };
+
+    class Random_Number_Gen{
+        private:
+            std::default_random_engine gen;  
+            std::uniform_int_distribution<> dis;;
+            static Random_Number_Gen* instance;
+            static constexpr int LOWER_LIMIT = -100;
+            static constexpr int UPPER_LIMIT = 100;
+            Random_Number_Gen() : gen(std::random_device{}()),dis(LOWER_LIMIT, UPPER_LIMIT){}
+            static std::mutex mtx;//thread safety
+        public:
+        Random_Number_Gen(const Random_Number_Gen&) = delete;//Deleting copy
+        Random_Number_Gen& operator=(const Random_Number_Gen&) = delete;
+
+        static Random_Number_Gen* engine() {
+            std::lock_guard<std::mutex> lock(mtx);
+            if (instance == nullptr) {
+                instance = new Random_Number_Gen();
+            }
+            return instance;
+        };
+        int generate(){
+            return dis(gen);
+        }
+    };
 }
+
 
 
 
