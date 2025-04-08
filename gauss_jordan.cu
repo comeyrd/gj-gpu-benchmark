@@ -19,23 +19,6 @@ __global__ void fixRow(double *matrix, int size,int rowId){
     matrix[size*rowId+colId] = Ri[colId];
 }
 
-__global__ void fixColumn(double *matrix, int size, int colId){
-    int i = threadIdx.x;
-    int j = blockIdx.x;
-    __shared__ double col[512];
-    __shared__ double colj[512];
-    __shared__ double AColIdj;
-    col[i] = matrix[i * size + colId];
-    if(col[i]!=0){
-        colj[i] = matrix[i * size + colId];
-        AColIdj = matrix[colId * size + j];
-        if (i!= colId){
-            colj[i] = colj[i] - AColIdj * col[i];
-        }
-        matrix[i * size + j] = colj[i];
-    }
-}
-
 __global__ void myfixColumn(double *matrix, int size, int colId){
     int col_x = threadIdx.x;
     int row_x = blockIdx.x;
@@ -47,13 +30,13 @@ __global__ void myfixColumn(double *matrix, int size, int colId){
     }
 }
 
-
 __global__ void perform_swap(double *matrix, int size, int colId,int swapId){
     int col_x = threadIdx.x;
     double toswap = matrix[colId*size+col_x];
     matrix[colId*size+col_x] = matrix[swapId*size+col_x];
     matrix[swapId*size+col_x] = toswap;
 }
+
 
 int main(int argc, char** argv){
     std::cout << "Gauss Jordan on GPU" << std::endl;
