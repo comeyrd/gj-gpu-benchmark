@@ -41,14 +41,10 @@ __global__ void perform_swap(double *matrix, int size, int colId,int swapId){
 int main(int argc, char** argv){
     std::cout << "Gauss Jordan on GPU" << std::endl;
     int N = 5;
-    bool with_swap = false;
     bool debug = false;
-    if(argc == 4){
+    if(argc == 3){
         N = std::atoi(argv[1]);
         if((strcmp(argv[2], "1") == 0)){
-            with_swap = true;
-        }
-        if((strcmp(argv[3], "1") == 0)){
             debug = true;
         }
     }
@@ -65,28 +61,10 @@ int main(int argc, char** argv){
     cudaMallocManaged(&matrix, N*(N+N)*sizeof(double));
 
     GJ_Utils::GJ_Matrix gjm1 =  GJ_Utils::GJ_Matrix(matrix,&m3);
-    //gjm1.print();
-
     
     int col = N*2;
     int row = N;
     for(int l=0;l<row;l++){
-        if(with_swap){
-            double max = std::fabs(matrix[l*col+l]);
-            int swapId;
-            for(int i=l+1;i<row;i++){
-            if(std::fabs(matrix[i*col+l]) > max){
-                max = std::fabs(matrix[i*col+l]);
-                swapId = i;
-            }
-            }
-            if(max>std::fabs(matrix[l*col+l])){
-                if(debug)
-                    std::cout <<"Swapping row "<< l<< " and "<<swapId <<std::endl;
-                perform_swap<<<1,col>>>(matrix,col,l,swapId);
-                cudaDeviceSynchronize();
-            }
-        }
         fixRow<<<1,col>>>(matrix,col,l);
         cudaDeviceSynchronize();
         myfixColumn<<<row,col>>>(matrix,col,l);
@@ -107,6 +85,5 @@ int main(int argc, char** argv){
         GJ_Utils::S_Matrix invt = ls.times(&m3);
         invt.print();
     }
-    
     return 0;
 } 
