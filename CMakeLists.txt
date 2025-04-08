@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.15)
 
 project(gj-cuda LANGUAGES CUDA CXX)
 
-add_executable(main gauss_jordan.cu gj_utils.cpp)
+add_subdirectory(kernels)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+add_executable(main main.cpp)
+
+set_target_properties(main PROPERTIES CUDA_ARCHITECTURES 70)
+
+target_link_libraries(main PRIVATE kernels)

@@ -1,4 +1,4 @@
-#include "gj_utils.hpp"
+#include "matrix.hpp"
 #include <iostream>
 #include <iomanip>
 #include <stdio.h>
@@ -20,6 +20,14 @@ Matrix::~Matrix() {
     if(owns_data)
         delete[] data;
 }
+void Matrix::update_memory(double* ptr,bool owns,int row,int col){
+    if(owns_data)
+        delete[] data;
+    data = ptr;
+    owns_data = owns;
+    rows = row;
+    cols = col;
+}
 
 double& Matrix::at(int row, int col){
     return data[row * cols + col]; 
@@ -39,7 +47,9 @@ void Matrix::print(){
         }
 } 
 }
-
+//TODO Generate "good" matrices, that will provide a low conditionned matrix.
+//To achieve that, put 1 on L diagonal, and between 1 and 2 on U diagonal
+//Keep the off-diagonal values small
 void S_Matrix::fill_random_L(){
     Random_Number_Gen* gen = Random_Number_Gen::engine();
     for(int i=0;i<this->cols;i++){
