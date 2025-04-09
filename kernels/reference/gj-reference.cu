@@ -1,25 +1,18 @@
 #include "gj-reference.hpp"
 
-static bool dummy = []() {
-    std::cout << "before"<< std::endl;
-    ReferenceGaussJordan _;
-    return true;
-}();
 
-
-__global__ void fixRow(double *matrix, int size,int rowId){
+__global__ void reference_fixRow(double *matrix, int size,int rowId){
     __shared__ double Ri[512];
     __shared__ double Aii;
 
     int colId = threadIdx.x;
     Ri[colId] = matrix[size*rowId + colId];
     Aii = matrix[size*rowId + rowId];
-    __syncthreads();
     Ri[colId] = Ri[colId]/Aii;
     matrix[size*rowId+colId] = Ri[colId];
 }
 
-__global__ void myfixColumn(double *matrix, int size, int colId){
+__global__ void reference_myfixColumn(double *matrix, int size, int colId){
     int col_x = threadIdx.x;
     int row_x = blockIdx.x;
     __shared__ double ratio;
@@ -31,22 +24,24 @@ __global__ void myfixColumn(double *matrix, int size, int colId){
 }
 
 void reference_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
+    cudaError_t e;
     double* matrix;
-    cudaMalloc(&matrix,m->cols*m->rows);
-    cudaMemcpy(m->data,matrix,m->cols*m->rows,cudaMemcpyHostToDevice);
+    e = cudaMalloc(&matrix,m->cols*m->rows*sizeof(double));
+    //TODO manage error and throwing
+    e = cudaMemcpy(matrix,m->data,m->cols*m->rows*sizeof(double),cudaMemcpyHostToDevice);
 
     for(int l=0;l<m->rows;l++){
-        fixRow<<<1,m->cols>>>(matrix,m->cols,l);
+        reference_fixRow<<<1,m->cols>>>(matrix,m->cols,l);
         cudaDeviceSynchronize();
-        myfixColumn<<<m->rows,m->cols>>>(matrix,m->cols,l);
+        reference_myfixColumn<<<m->rows,m->cols>>>(matrix,m->cols,l);
         cudaDeviceSynchronize();
     }
 
-    cudaMemcpy(m->data,matrix,m->cols*m->rows,cudaMemcpyDeviceToHost);
-    cudaFree(matrix);
+    e = cudaMemcpy(m->data,matrix,m->cols*m->rows*sizeof(double),cudaMemcpyDeviceToHost);
+    e = cudaFree(matrix);
     GJ_Utils::S_Matrix s = m->get_right_side();
     double* inner_out =  new double[s.rows * s.cols]();
-    memcpy(inner_out,s.data,s.rows*s.cols*sizeof(float));
+    memcpy(inner_out,s.data,s.rows*s.cols*sizeof(double));
     bool o_owns_mem = true;
     o->update_memory(inner_out,o_owns_mem,s.rows,s.cols);
 };

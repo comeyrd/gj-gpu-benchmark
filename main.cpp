@@ -7,8 +7,10 @@
 #include "kernels.hpp"
 
 #include <string.h>
+#include "kernels_list.hpp"
 
 int main(int argc, char** argv){
+    retreive_kernels();
     std::cout << "Gauss Jordan on GPU" << std::endl;
     int N = 5;
     bool debug = false;
@@ -30,23 +32,14 @@ int main(int argc, char** argv){
     GJ_Utils::GJ_Matrix gjm1 =  GJ_Utils::GJ_Matrix(&m3);
     
 
-    auto kernels = KernelsManager::getManager()->getKernels();
+    Kernel_umap kernels = KernelsManager::instance()->getKernels();
+    GJ_Utils::S_Matrix o = GJ_Utils::S_Matrix(gjm1.rows);
+
     for (const auto& [name, kernel] : kernels) {
-        std::cout << "Registered kernel: " << name << std::endl;
+        kernel->inverse(&gjm1,&o);
+        double mean_error = o.is_inverse(&m3);
+        std::cout<<"Kernel " <<name << " with mean error : " << mean_error << std::endl;
     }
-    
-    return 0;
-   
-    if(debug){
-        std::cout<<"Matrix after Gj: "<<std::endl;
-        gjm1.print();
-    }
-    GJ_Utils::S_Matrix ls = gjm1.get_right_side();
-    auto [inv,max_error] = ls.is_inverse(&m3);
-    std::cout << "My method is inverse : " << inv << " With max error : "<< max_error <<std::endl;
-    if(!inv && debug){
-        GJ_Utils::S_Matrix invt = ls.times(&m3);
-        invt.print();
-    }
+
     return 0;
 }

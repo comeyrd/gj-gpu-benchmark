@@ -2,7 +2,7 @@
 #define  KERNELS_HPP
 #include "matrix.hpp"
 #include <mutex>
-#include <map>
+#include <unordered_map>
 #include <memory>
 #include <iostream>
 
@@ -12,38 +12,27 @@ class IGaussJordan{
         virtual void inverse(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix *o) const = 0;
 };
 
+typedef std::unordered_map<std::string, std::shared_ptr<IGaussJordan>> Kernel_umap;
 
 class KernelsManager{
     private:
-        static std::mutex _mtx;
-        static KernelsManager* _manager;
-        std::map<std::string, std::shared_ptr<IGaussJordan>> _kernels;
-
-        KernelsManager() = default;
+        Kernel_umap _kernels;
     public:
-        KernelsManager(const KernelsManager&) = delete;
-        KernelsManager& operator=(const KernelsManager&) = delete;
-
-        static KernelsManager* getManager(){
-            std::cout<<"yay"<<std::endl;
-            std::lock_guard<std::mutex> lock(_mtx);
-            if (_manager == nullptr) {
-                _manager = new KernelsManager();
-            }
-            return _manager;
+    
+        static KernelsManager* instance(){
+            static KernelsManager manager;
+            return &manager;
         }
-        
-        const std::map<std::string,std::shared_ptr<IGaussJordan>> getKernels(){
+        const std::unordered_map<std::string,std::shared_ptr<IGaussJordan>> &getKernels(){
             return _kernels;
         };
 
         void registerKernel(const std::string& name, std::shared_ptr<IGaussJordan> kernel){
             _kernels[name] = kernel;
         };
+        
 
 };
 
-std::mutex KernelsManager::_mtx;
-KernelsManager* KernelsManager::_manager = nullptr;
 
 #endif

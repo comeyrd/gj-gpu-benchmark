@@ -28,7 +28,7 @@ namespace GJ_Utils{
             void fill_random_L();
             void fill_random_U();
             S_Matrix times(const S_Matrix *m2);
-            std::tuple<bool,double> is_inverse(const S_Matrix *inverse);
+            double is_inverse(const S_Matrix *inverse);
             
     };
     
@@ -36,6 +36,7 @@ namespace GJ_Utils{
         public:
             GJ_Matrix(S_Matrix* matrix);
             GJ_Matrix(double* allocated,S_Matrix* matrix);
+            GJ_Matrix(double* allocated, int rows, int cols) : Matrix(allocated,rows,cols){}
             void print();
             S_Matrix get_right_side();
             S_Matrix get_left_side();
@@ -45,22 +46,18 @@ namespace GJ_Utils{
         private:
             std::default_random_engine gen;  
             std::uniform_int_distribution<> dis;;
-            static Random_Number_Gen* instance;
             static constexpr int LOWER_LIMIT = -100;
             static constexpr int UPPER_LIMIT = 100;
             Random_Number_Gen() : gen(std::random_device{}()),dis(LOWER_LIMIT, UPPER_LIMIT){}
-            static std::mutex mtx;//thread safety
         public:
         Random_Number_Gen(const Random_Number_Gen&) = delete;//Deleting copy
         Random_Number_Gen& operator=(const Random_Number_Gen&) = delete;
 
-        static Random_Number_Gen* engine() {
-            std::lock_guard<std::mutex> lock(mtx);
-            if (instance == nullptr) {
-                instance = new Random_Number_Gen();
-            }
-            return instance;
-        };
+        static Random_Number_Gen* instance(){
+            static Random_Number_Gen instance;
+            return &instance;
+        }
+
         int generate(){
             return dis(gen);
         }
