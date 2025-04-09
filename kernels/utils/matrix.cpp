@@ -1,4 +1,4 @@
-#include "gj_utils.hpp"
+#include "matrix.hpp"
 #include <iostream>
 #include <iomanip>
 #include <stdio.h>
@@ -6,10 +6,6 @@
 double ACCEPTED_MIN = 0.002;
 using namespace GJ_Utils;
 
-namespace GJ_Utils {
-    std::mutex Random_Number_Gen::mtx;
-    Random_Number_Gen* Random_Number_Gen::instance = nullptr;
-}
 
 Matrix::Matrix(int rows, int cols) : rows(rows), cols(cols) {
     owns_data = true;
@@ -19,6 +15,14 @@ Matrix::Matrix(int rows, int cols) : rows(rows), cols(cols) {
 Matrix::~Matrix() {
     if(owns_data)
         delete[] data;
+}
+void Matrix::update_memory(double* ptr,bool owns,int row,int col){
+    if(owns_data)
+        delete[] data;
+    data = ptr;
+    owns_data = owns;
+    rows = row;
+    cols = col;
 }
 
 double& Matrix::at(int row, int col){
@@ -39,9 +43,11 @@ void Matrix::print(){
         }
 } 
 }
-
+//TODO Generate "good" matrices, that will provide a low conditionned matrix.
+//To achieve that, put 1 on L diagonal, and between 1 and 2 on U diagonal
+//Keep the off-diagonal values small
 void S_Matrix::fill_random_L(){
-    Random_Number_Gen* gen = Random_Number_Gen::engine();
+    Random_Number_Gen* gen = Random_Number_Gen::instance();
     for(int i=0;i<this->cols;i++){
         for(int j=0;j<=i;j++){
             double random_nbr = gen->generate();
@@ -54,7 +60,7 @@ void S_Matrix::fill_random_L(){
 }
 
 void S_Matrix::fill_random_U(){
-    Random_Number_Gen* gen = Random_Number_Gen::engine();
+    Random_Number_Gen* gen = Random_Number_Gen::instance();
     for(int i=0;i < this->rows;i++){
         for(int j=i ;j<this->cols;j++){
             double random_nbr = gen->generate();
@@ -82,10 +88,9 @@ S_Matrix S_Matrix::times(const S_Matrix* m2){
     return res;
 }
 
-std::tuple<bool,double> S_Matrix::is_inverse(const S_Matrix *inverse){
+double S_Matrix::is_inverse(const S_Matrix *inverse){
     S_Matrix m = this->times(inverse);
-    bool ret = true;
-    double max_error = 0;
+    double mean_error = 0;
     for (int i = 0; i < this->rows; ++i) {
         for (int j = 0; j < this->cols; ++j) {
             double min = -ACCEPTED_MIN;
@@ -97,15 +102,11 @@ std::tuple<bool,double> S_Matrix::is_inverse(const S_Matrix *inverse){
             if(value<0){
                 value*=-1;
             }
-            if(value > ACCEPTED_MIN){
-                ret = false;
-            }
-            if(value > max_error){
-                max_error = value;
-            }
+            mean_error+=value;
         }
     }
-    return std::make_tuple(ret,max_error);
+    mean_error /= (this->rows*this->cols);
+    return mean_error;
 }
 
 GJ_Matrix::GJ_Matrix(double* allocated,S_Matrix* matrix) : Matrix(allocated,matrix->rows, matrix->cols * 2) {
