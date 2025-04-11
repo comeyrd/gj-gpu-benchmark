@@ -37,6 +37,7 @@ namespace GJ_Utils{
             GJ_Matrix(S_Matrix* matrix);
             GJ_Matrix(double* allocated,S_Matrix* matrix);
             GJ_Matrix(double* allocated, int rows, int cols) : Matrix(allocated,rows,cols){}
+            GJ_Matrix(int rows): Matrix(rows,rows*2){};
             void print();
             S_Matrix get_right_side();
             S_Matrix get_left_side();

@@ -5,12 +5,12 @@
 #include <map>
 #include <iostream>
 
-void reference_kernel(GJ_Utils::GJ_Matrix* m, GJ_Utils::S_Matrix* o);
+ExecutionStats reference_kernel(GJ_Utils::GJ_Matrix* m, GJ_Utils::S_Matrix* o);
 
 class ReferenceGaussJordan : public IGaussJordan{
     public:
-    void inverse(GJ_Utils::GJ_Matrix* m, GJ_Utils::S_Matrix* o) const override {
-        reference_kernel(m,o);
+    ExecutionStats inverse(GJ_Utils::GJ_Matrix* m, GJ_Utils::S_Matrix* o) const override {
+        return reference_kernel(m,o);
     };
 };
 

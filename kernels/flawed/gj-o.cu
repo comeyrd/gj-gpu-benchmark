@@ -1,19 +1,18 @@
-#include "gj-reference.hpp"
-#define CHECK_CUDA(error) check_cuda_error(error, __FILE__, __LINE__)
+#include "gj-o.hpp"
 
-__global__ void reference_fixRow(double *matrix, int size,int rowId){
-    extern __shared__ double Ri[];
-    __shared__ double Aii;
+
+__global__ void o_fixRow(double *matrix, int size,int rowId){
+    double Ri;
+    double Aii;
 
     int colId = threadIdx.x;
-    Ri[colId] = matrix[size*rowId + colId];
-    __syncthreads();
-    Aii = Ri[rowId];
-    Ri[colId] = Ri[colId]/Aii;
-    matrix[size*rowId+colId] = Ri[colId];
+    Ri = matrix[size*rowId + colId];
+    Aii = matrix[size*rowId + rowId];
+    Ri = Ri/Aii;
+    matrix[size*rowId+colId] = Ri;
 }
 
-__global__ void reference_myfixColumn(double *matrix, int size, int colId){
+__global__ void o_myfixColumn(double *matrix, int size, int colId){
     int col_x = threadIdx.x;
     int row_x = blockIdx.x;
     __shared__ double ratio;
@@ -23,14 +22,8 @@ __global__ void reference_myfixColumn(double *matrix, int size, int colId){
         matrix[row_x*size +col_x] = val;
     }
 }
-void check_cuda_error(cudaError_t error_code,const char* file, int line){
-    if(error_code != cudaSuccess){
-        std::string msg = std::string("CUDA Error : ") + cudaGetErrorString(error_code) + std::string(" in : ") + file + std::string(" line ") + std::to_string(line);
-        throw std::runtime_error(msg);
-    }
-}
 
-ExecutionStats reference_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
+ExecutionStats o_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
     cudaSetDevice(1);
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
@@ -40,29 +33,20 @@ ExecutionStats reference_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
     double* matrix;
     cudaEventRecord(start);
     e = cudaMalloc(&matrix,m->cols*m->rows*sizeof(double));
-    CHECK_CUDA(e);
     e = cudaMemcpy(matrix,m->data,m->cols*m->rows*sizeof(double),cudaMemcpyHostToDevice);
-    CHECK_CUDA(e);
 
     for(int l=0;l<m->rows;l++){
-        reference_fixRow<<<1,m->cols,m->cols*sizeof(double)>>>(matrix,m->cols,l);
-        e = cudaGetLastError();
-        CHECK_CUDA(e);
-        e = cudaDeviceSynchronize();
-        CHECK_CUDA(e);
-        reference_myfixColumn<<<m->rows,m->cols>>>(matrix,m->cols,l);
-        e = cudaDeviceSynchronize();
-        CHECK_CUDA(e);
-        e = cudaGetLastError();
-        CHECK_CUDA(e);
+        o_fixRow<<<1,m->cols>>>(matrix,m->cols,l);
+        cudaDeviceSynchronize();
+        o_myfixColumn<<<m->rows,m->cols>>>(matrix,m->cols,l);
+        cudaDeviceSynchronize();
+
     }
     
     GJ_Utils::GJ_Matrix out_gj = GJ_Utils::GJ_Matrix(m->rows);
 
     e = cudaMemcpy(out_gj.data,matrix,out_gj.cols*out_gj.rows*sizeof(double),cudaMemcpyDeviceToHost);
-    CHECK_CUDA(e);
     e = cudaFree(matrix);
-    CHECK_CUDA(e);
 
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
@@ -71,7 +55,6 @@ ExecutionStats reference_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
     cudaEventElapsedTime(&stats.elapsed, start, stop);
 
     GJ_Utils::S_Matrix s = out_gj.get_right_side();
-
     double* inner_out =  new double[s.rows * s.cols]();
     memcpy(inner_out,s.data,s.rows*s.cols*sizeof(double));
     bool o_owns_mem = true;

@@ -11,9 +11,11 @@ target_include_directories(reference PUBLIC ${CMAKE_SOURCE_DIR}/kernels/referenc
 target_link_libraries(reference PUBLIC utils)
 
 if(BUILD_WITH_CUDA)
-    add_library(flawed STATIC flawed/gj-fa1.cu)
+    file(GLOB FLAWED_CUDA "${CMAKE_SOURCE_DIR}/kernels/flawed/*.cu")
+    add_library(flawed STATIC ${FLAWED_CUDA})
     set_target_properties(flawed PROPERTIES CUDA_ARCHITECTURES 70)
 elseif(BUILD_WITH_HIP)
+    file(GLOB FLAWED_HIP "${CMAKE_SOURCE_DIR}/kernels/flawed/*.hip")
     add_library(flawed STATIC flawed/gj-fa1.hip)
 endif()
 

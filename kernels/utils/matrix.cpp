@@ -2,7 +2,7 @@
 #include <iostream>
 #include <iomanip>
 #include <stdio.h>
-
+#include <cstring>
 double ACCEPTED_MIN = 0.002;
 using namespace GJ_Utils;
 
@@ -28,7 +28,7 @@ void Matrix::update_memory(double* ptr,bool owns,int row,int col){
 double& Matrix::at(int row, int col){
     return data[row * cols + col]; 
 }
-
+//TODO use <<
 void Matrix::print(){
     for(int i=0;i<cols*rows;i++){
         if(i == 0){
@@ -93,8 +93,6 @@ double S_Matrix::is_inverse(const S_Matrix *inverse){
     double mean_error = 0;
     for (int i = 0; i < this->rows; ++i) {
         for (int j = 0; j < this->cols; ++j) {
-            double min = -ACCEPTED_MIN;
-            double max = ACCEPTED_MIN;
             double value = m.data[i*this->cols+j];
             if (i == j) {
               value -= 1;
