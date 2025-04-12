@@ -1,6 +1,7 @@
+#ifndef KERNEL_LIST_HPP  
+#define  KERNEL_LIST_HPP
+
 #include "kernels.hpp"
-#include "gj-reference.hpp"
-#include "gj-o.hpp"
 
 struct RegisterKernel {
     RegisterKernel(const std::string& name, std::shared_ptr<IGaussJordan> kernel) {
@@ -8,9 +9,7 @@ struct RegisterKernel {
     }
 };
 
-void retreive_kernels(){
-    KernelsManager* km = KernelsManager::instance();
-    km->registerKernel("Reference", std::make_shared<ReferenceGaussJordan>());
-    km->registerKernel("Optim",std::make_shared<OGaussJordan>());
-}
+void retreive_kernels();
 
+
+#endif
