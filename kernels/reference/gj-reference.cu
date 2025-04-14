@@ -23,6 +23,7 @@ __global__ void reference_myfixColumn(double *matrix, int size, int colId){
         matrix[row_x*size +col_x] = val;
     }
 }
+
 void check_cuda_error(cudaError_t error_code,const char* file, int line){
     if(error_code != cudaSuccess){
         std::string msg = std::string("CUDA Error : ") + cudaGetErrorString(error_code) + std::string(" in : ") + file + std::string(" line ") + std::to_string(line);
@@ -48,15 +49,14 @@ ExecutionStats reference_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
         reference_fixRow<<<1,m->cols,m->cols*sizeof(double)>>>(matrix,m->cols,l);
         e = cudaGetLastError();
         CHECK_CUDA(e);
-        e = cudaDeviceSynchronize();
-        CHECK_CUDA(e);
         reference_myfixColumn<<<m->rows,m->cols>>>(matrix,m->cols,l);
-        e = cudaDeviceSynchronize();
-        CHECK_CUDA(e);
         e = cudaGetLastError();
         CHECK_CUDA(e);
     }
-    
+
+    e = cudaDeviceSynchronize();
+    CHECK_CUDA(e);
+
     GJ_Utils::GJ_Matrix out_gj = GJ_Utils::GJ_Matrix(m->rows);
 
     e = cudaMemcpy(out_gj.data,matrix,out_gj.cols*out_gj.rows*sizeof(double),cudaMemcpyDeviceToHost);

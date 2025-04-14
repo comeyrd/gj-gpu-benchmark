@@ -1,7 +1,7 @@
-#include "gj-o.hpp"
+#include "gj-oc.hpp"
 
 
-__global__ void o_fixRow(double *matrix, int size,int rowId){
+__global__ void oc_fixRow(double *matrix, int size,int rowId){
     double Ri;
     double Aii;
 
@@ -12,7 +12,7 @@ __global__ void o_fixRow(double *matrix, int size,int rowId){
     matrix[size*rowId+colId] = Ri;
 }
 
-__global__ void o_myfixColumn(double *matrix, int size, int colId){
+__global__ void oc_myfixColumn(double *matrix, int size, int colId){
     int col_x = threadIdx.x;
     int row_x = blockIdx.x;
     __shared__ double ratio;
@@ -23,7 +23,7 @@ __global__ void o_myfixColumn(double *matrix, int size, int colId){
     }
 }
 
-ExecutionStats o_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
+ExecutionStats oc_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
     cudaSetDevice(1);
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
@@ -36,9 +36,9 @@ ExecutionStats o_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
     e = cudaMemcpy(matrix,m->data,m->cols*m->rows*sizeof(double),cudaMemcpyHostToDevice);
 
     for(int l=0;l<m->rows;l++){
-        o_fixRow<<<1,m->cols>>>(matrix,m->cols,l);
+        oc_fixRow<<<1,m->cols>>>(matrix,m->cols,l);
         cudaDeviceSynchronize();
-        o_myfixColumn<<<m->rows,m->cols>>>(matrix,m->cols,l);
+        oc_myfixColumn<<<m->rows,m->cols>>>(matrix,m->cols,l);
         cudaDeviceSynchronize();
 
     }
@@ -57,8 +57,10 @@ ExecutionStats o_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
     GJ_Utils::S_Matrix s = out_gj.get_right_side();
     double* inner_out =  new double[s.rows * s.cols]();
     memcpy(inner_out,s.data,s.rows*s.cols*sizeof(double));
-    bool o_owns_mem = true;
-    o->update_memory(inner_out,o_owns_mem,s.rows,s.cols);
+    bool oc_owns_mem = true;
+    o->update_memory(inner_out,oc_owns_mem,s.rows,s.cols);
 
     return stats;
 };
+
+
