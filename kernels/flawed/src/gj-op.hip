@@ -1,5 +1,5 @@
 #include "hip/hip_runtime.h"
-#include "gj-oc.hpp"
+#include "gj-op.hpp"
 #include "hip-utils.hpp"
 //Useless synchronisation between host and device
 

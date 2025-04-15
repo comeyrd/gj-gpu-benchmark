@@ -15,7 +15,7 @@ void check_hip_error(hipError_t error_code,const char* file, int line){
 void retreive_kernels(){
     KernelsManager* km = KernelsManager::instance();
     km->registerKernel("Reference", std::make_shared<ReferenceGaussJordan>());
-    km->registerKernel("OC",std::make_shared<OCGaussJordan>());
+    km->registerKernel("OP",std::make_shared<OPGaussJordan>());
     km->registerKernel("RC",std::make_shared<RCGaussJordan>());
     km->registerKernel("DA",std::make_shared<DAGaussJordan>());
 }

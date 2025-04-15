@@ -1,8 +1,11 @@
 #ifndef GJ_FLAWED_HPP  
 #define  GJ_FLAWED_HPP
 
-#include "gj-oc.hpp"
+#include "gj-op.hpp"
 #include "gj-rc.hpp"
 #include "gj-da.hpp"
+#include "gj-cp.hpp"
+#include "gj-dl.hpp"
+#include "gj-ml.hpp"
 
 #endif

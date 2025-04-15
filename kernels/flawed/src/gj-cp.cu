@@ -1,8 +1,7 @@
-#include "gj-oc.hpp"
+#include "gj-cp.hpp"
 #include "cuda-utils.hpp"
-//Useless synchronisation between host and device
-
-__global__ void oc_fixRow(double *matrix, int size,int rowId){
+//Underparallelization
+__global__ void cp_fixRow(double *matrix, int size,int rowId){
     extern __shared__ double Ri[];
     __shared__ double Aii;
 
@@ -15,39 +14,36 @@ __global__ void oc_fixRow(double *matrix, int size,int rowId){
     matrix[size*rowId+colId] = Ri[colId];
 }
 
-__global__ void oc_fixColumn(double *matrix, int size, int colId){
+__global__ void cp_fixColumn(double *matrix, int n_col, int colId,int n_row ){
     int col_x = threadIdx.x;
-    int row_x = blockIdx.x;
     __shared__ double ratio;
-    if(row_x!=colId && matrix[row_x*size + colId] != 0){
-        if(col_x == 0)
-            ratio = matrix[row_x*size + colId] / matrix[colId*size + colId];
-        __syncthreads();
-        double val = matrix[row_x*size + col_x] - ratio * matrix[colId*size+col_x];
-        matrix[row_x*size +col_x] = val;
-    }
+    for(int row_x = 0;row_x<n_row;row_x++){
+        if(row_x!=colId && matrix[row_x*n_col + colId] != 0){
+            if(col_x == 0)
+                ratio = matrix[row_x*n_col + colId] / matrix[colId*n_col + colId];
+            __syncthreads();
+            double val = matrix[row_x*n_col + col_x] - ratio * matrix[colId*n_col+col_x];
+            matrix[row_x*n_col +col_x] = val;
+        }
+}
 }
 
-ExecutionStats oc_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
+ExecutionStats cp_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
     CudaProfiling prof;
+
     cudaError_t e;
     double* matrix;
     e = cudaMalloc(&matrix,m->cols*m->rows*sizeof(double));
     CHECK_CUDA(e);
     e = cudaMemcpy(matrix,m->data,m->cols*m->rows*sizeof(double),cudaMemcpyHostToDevice);
     CHECK_CUDA(e);
-    
     prof.begin();
     for(int l=0;l<m->rows;l++){
-        oc_fixRow<<<1,m->cols,m->cols*sizeof(double)>>>(matrix,m->cols,l);
+        cp_fixRow<<<1,m->cols,m->cols*sizeof(double)>>>(matrix,m->cols,l);
         e = cudaGetLastError();
         CHECK_CUDA(e);
-        e = cudaDeviceSynchronize();//bug
-        CHECK_CUDA(e);
-        oc_fixColumn<<<m->rows,m->cols>>>(matrix,m->cols,l);
+        cp_fixColumn<<<1,m->cols>>>(matrix,m->cols,l,m->rows);//bug
         e = cudaGetLastError();
-        CHECK_CUDA(e);
-        e = cudaDeviceSynchronize();//bug
         CHECK_CUDA(e);
     }
     ExecutionStats stats = prof.end();

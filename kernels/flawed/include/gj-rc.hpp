@@ -1,6 +1,5 @@
 #ifndef O_RC_HPP  
 #define  O_RC_HPP
-
 #include "kernels.hpp"
 #include <map>
 #include <iostream>
