@@ -1,5 +1,5 @@
-#ifndef GJ_FLAWED_HPP  
-#define  GJ_FLAWED_HPP
+#ifndef CUDA_UTILS_HPP  
+#define  CUDA_UTILS_HPP
 
 #define CHECK_CUDA(error) check_cuda_error(error, __FILE__, __LINE__)
 
