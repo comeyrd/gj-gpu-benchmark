@@ -1,5 +1,5 @@
-#ifndef O_FA1_HPP  
-#define  O_FA1_HPP
+#ifndef O_OC_HPP  
+#define  O_OC_HPP
 
 #include "kernels.hpp"
 #include <map>

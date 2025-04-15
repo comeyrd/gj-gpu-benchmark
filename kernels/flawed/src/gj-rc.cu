@@ -1,8 +1,9 @@
-#include "gj-reference.hpp"
+#include "gj-rc.hpp"
 #include "cuda-utils.hpp"
+//Array with a fixed size, unused memory
 
-__global__ void reference_fixRow(double *matrix, int size,int rowId){
-    extern __shared__ double Ri[];
+__global__ void rc_fixRow(double *matrix, int size,int rowId){
+    __shared__ double Ri[1024];//bug
     __shared__ double Aii;
 
     int colId = threadIdx.x;
@@ -10,11 +11,11 @@ __global__ void reference_fixRow(double *matrix, int size,int rowId){
     if(colId == rowId)
         Aii = Ri[rowId];
     __syncthreads();
-    Ri[colId] = Ri[colId]/Aii;
+    Ri[colId] = Ri[colId] / Aii;
     matrix[size*rowId+colId] = Ri[colId];
 }
 
-__global__ void reference_fixColumn(double *matrix, int size, int colId){
+__global__ void rc_fixColumn(double *matrix, int size, int colId){
     int col_x = threadIdx.x;
     int row_x = blockIdx.x;
     __shared__ double ratio;
@@ -27,7 +28,8 @@ __global__ void reference_fixColumn(double *matrix, int size, int colId){
     }
 }
 
-ExecutionStats reference_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
+ExecutionStats rc_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
+    cudaSetDevice(1);
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
@@ -41,10 +43,10 @@ ExecutionStats reference_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
     CHECK_CUDA(e);
 
     for(int l=0;l<m->rows;l++){
-        reference_fixRow<<<1,m->cols,m->cols*sizeof(double)>>>(matrix,m->cols,l);
+        rc_fixRow<<<1,m->cols>>>(matrix,m->cols,l);
         e = cudaGetLastError();
         CHECK_CUDA(e);
-        reference_fixColumn<<<m->rows,m->cols>>>(matrix,m->cols,l);
+        rc_fixColumn<<<m->rows,m->cols>>>(matrix,m->cols,l);
         e = cudaGetLastError();
         CHECK_CUDA(e);
     }

@@ -19,6 +19,7 @@ namespace GJ_Utils{
             double& at(int row, int col);
             void print();
             void update_memory(double* ptr,bool owns,int row,int col);
+            void to_csv(std::ostream &output);
     };
 
     class S_Matrix : public Matrix {

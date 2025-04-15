@@ -1,7 +1,7 @@
-#include "gj-reference.hpp"
+#include "gj-da.hpp"
 #include "cuda-utils.hpp"
-
-__global__ void reference_fixRow(double *matrix, int size,int rowId){
+//Global Memory for Shared Value
+__global__ void da_fixRow(double *matrix, int size,int rowId){
     extern __shared__ double Ri[];
     __shared__ double Aii;
 
@@ -14,20 +14,19 @@ __global__ void reference_fixRow(double *matrix, int size,int rowId){
     matrix[size*rowId+colId] = Ri[colId];
 }
 
-__global__ void reference_fixColumn(double *matrix, int size, int colId){
+__global__ void da_fixColumn(double *matrix, int size, int colId,double *ratio/*bug*/){
     int col_x = threadIdx.x;
     int row_x = blockIdx.x;
-    __shared__ double ratio;
     if(row_x!=colId && matrix[row_x*size + colId] != 0){
         if(col_x == 0)
-            ratio = matrix[row_x*size + colId] / matrix[colId*size + colId];
+            ratio[row_x] = matrix[row_x*size + colId] / matrix[colId*size + colId];
         __syncthreads();
-        double val = matrix[row_x*size + col_x] - ratio * matrix[colId*size+col_x];
+        double val = matrix[row_x*size + col_x] - ratio[row_x] * matrix[colId*size+col_x];
         matrix[row_x*size +col_x] = val;
     }
 }
 
-ExecutionStats reference_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
+ExecutionStats da_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
@@ -40,11 +39,15 @@ ExecutionStats reference_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
     e = cudaMemcpy(matrix,m->data,m->cols*m->rows*sizeof(double),cudaMemcpyHostToDevice);
     CHECK_CUDA(e);
 
+    double* ratio;
+    e = cudaMalloc(&ratio,m->rows*sizeof(double));
+    CHECK_CUDA(e);
+
     for(int l=0;l<m->rows;l++){
-        reference_fixRow<<<1,m->cols,m->cols*sizeof(double)>>>(matrix,m->cols,l);
+        da_fixRow<<<1,m->cols,m->cols*sizeof(double)>>>(matrix,m->cols,l);
         e = cudaGetLastError();
         CHECK_CUDA(e);
-        reference_fixColumn<<<m->rows,m->cols>>>(matrix,m->cols,l);
+        da_fixColumn<<<m->rows,m->cols>>>(matrix,m->cols,l,ratio);
         e = cudaGetLastError();
         CHECK_CUDA(e);
     }
@@ -57,6 +60,8 @@ ExecutionStats reference_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
     e = cudaMemcpy(out_gj.data,matrix,out_gj.cols*out_gj.rows*sizeof(double),cudaMemcpyDeviceToHost);
     CHECK_CUDA(e);
     e = cudaFree(matrix);
+    CHECK_CUDA(e);
+    e = cudaFree(ratio);
     CHECK_CUDA(e);
 
     cudaEventRecord(stop);

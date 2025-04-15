@@ -59,6 +59,19 @@ void S_Matrix::fill_random_L(){
     }
 }
 
+void Matrix::to_csv(std::ostream &output){
+    output << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10);
+    for(int i=0;i<this->rows;i++){
+        for(int j=0; j<this->cols;j++){
+            output << this->data[i*this->rows+j];
+            if(j< (this->cols - 1))
+                output << " ,";
+        }
+        output << std::endl;
+    }
+    output << std::endl;
+}
+
 void S_Matrix::fill_random_U(){
     Random_Number_Gen* gen = Random_Number_Gen::instance();
     for(int i=0;i < this->rows;i++){
@@ -161,6 +174,7 @@ void GJ_Matrix::print(){
         }
     } 
 }
+
 
 S_Matrix GJ_Matrix::get_right_side(){
     S_Matrix rs = S_Matrix(this->rows);
