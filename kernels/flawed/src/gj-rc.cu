@@ -29,19 +29,14 @@ __global__ void rc_fixColumn(double *matrix, int size, int colId){
 }
 
 ExecutionStats rc_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
-    cudaSetDevice(1);
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-
+    CudaProfiling prof;
     cudaError_t e;
     double* matrix;
-    cudaEventRecord(start);
     e = cudaMalloc(&matrix,m->cols*m->rows*sizeof(double));
     CHECK_CUDA(e);
     e = cudaMemcpy(matrix,m->data,m->cols*m->rows*sizeof(double),cudaMemcpyHostToDevice);
     CHECK_CUDA(e);
-
+    prof.begin();
     for(int l=0;l<m->rows;l++){
         rc_fixRow<<<1,m->cols>>>(matrix,m->cols,l);
         e = cudaGetLastError();
@@ -50,9 +45,7 @@ ExecutionStats rc_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
         e = cudaGetLastError();
         CHECK_CUDA(e);
     }
-
-    e = cudaDeviceSynchronize();
-    CHECK_CUDA(e);
+    ExecutionStats stats = prof.end();
 
     GJ_Utils::GJ_Matrix out_gj = GJ_Utils::GJ_Matrix(m->rows);
 
@@ -60,12 +53,6 @@ ExecutionStats rc_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
     CHECK_CUDA(e);
     e = cudaFree(matrix);
     CHECK_CUDA(e);
-
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-
-    ExecutionStats stats;
-    cudaEventElapsedTime(&stats.elapsed, start, stop);
 
     GJ_Utils::S_Matrix s = out_gj.get_right_side();
 
