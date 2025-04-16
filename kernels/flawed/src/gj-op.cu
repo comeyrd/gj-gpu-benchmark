@@ -31,7 +31,6 @@ __global__ void op_fixColumn(double *matrix, int size, int colId){
 
 ExecutionStats op_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
     CudaProfiling prof;
-    cudaError_t e;
     double* matrix;
     CHECK_CUDA(cudaMalloc(&matrix,m->cols*m->rows*sizeof(double)));
     CHECK_CUDA(cudaMemcpy(matrix,m->data,m->cols*m->rows*sizeof(double),cudaMemcpyHostToDevice));
@@ -40,12 +39,10 @@ ExecutionStats op_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
     for(int l=0;l<m->rows;l++){
         op_fixRow<<<1,m->cols,m->cols*sizeof(double)>>>(matrix,m->cols,l);
         CHECK_CUDA(cudaGetLastError());
-        e = cudaDeviceSynchronize();//bug
-        CHECK_CUDA(e);
+        CHECK_CUDA(cudaDeviceSynchronize());//bug
         op_fixColumn<<<m->rows,m->cols>>>(matrix,m->cols,l);
         CHECK_CUDA(cudaGetLastError());
-        e = cudaDeviceSynchronize();//bug
-        CHECK_CUDA(e);
+        CHECK_CUDA(cudaDeviceSynchronize());//bug
     }
     ExecutionStats stats = prof.end();
 

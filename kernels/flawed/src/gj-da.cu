@@ -28,7 +28,6 @@ __global__ void da_fixColumn(double *matrix, int size, int colId,double *ratio/*
 
 ExecutionStats da_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
     CudaProfiling prof;
-    cudaError_t e;
     double* matrix;
     CHECK_CUDA(cudaMalloc(&matrix,m->cols*m->rows*sizeof(double)));
     CHECK_CUDA(cudaMemcpy(matrix,m->data,m->cols*m->rows*sizeof(double),cudaMemcpyHostToDevice));

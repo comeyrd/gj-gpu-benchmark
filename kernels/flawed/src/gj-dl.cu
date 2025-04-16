@@ -30,7 +30,6 @@ __global__ void dl_fixColumn(double **matrix, int size, int colId){
 ExecutionStats dl_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
     CudaProfiling prof;
 
-    cudaError_t e;
     double** h_matrix = new double*[m->rows]; 
     for (int l=0;l<m->rows;l++){
         CHECK_CUDA(cudaMalloc(&h_matrix[l],m->cols*sizeof(double)));
