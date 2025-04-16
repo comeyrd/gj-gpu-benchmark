@@ -14,8 +14,33 @@ void check_hip_error(hipError_t error_code,const char* file, int line){
 
 void retreive_kernels(){
     KernelsManager* km = KernelsManager::instance();
-    km->registerKernel("Reference", std::make_shared<ReferenceGaussJordan>());
+    km->registerKernel("BS", std::make_shared<ReferenceGaussJordan>());
     km->registerKernel("OP",std::make_shared<OPGaussJordan>());
     km->registerKernel("RC",std::make_shared<RCGaussJordan>());
     km->registerKernel("DA",std::make_shared<DAGaussJordan>());
+}
+
+
+
+HipProfiling::HipProfiling(){
+    CHECK_HIP(hipEventCreate(&start));
+    CHECK_HIP(hipEventCreate(&stop));
+};
+
+HipProfiling::~HipProfiling(){
+    CHECK_HIP(hipEventDestroy(start));
+    CHECK_HIP(hipEventDestroy(stop));
+};
+
+void HipProfiling::begin(){
+    CHECK_HIP(hipEventRecord(start));
+}
+
+ExecutionStats HipProfiling::end(){
+    CHECK_HIP(hipEventRecord(stop));
+    CHECK_HIP(hipEventSynchronize(stop));
+
+    ExecutionStats stats;
+    CHECK_HIP(hipEventElapsedTime(&stats.elapsed, start, stop));
+    return stats;
 }

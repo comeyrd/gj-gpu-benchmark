@@ -43,11 +43,9 @@ ExecutionStats dl_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
     prof.begin();
     for(int l=0;l<m->rows;l++){
         dl_fixRow<<<1,m->cols,m->cols*sizeof(double)>>>(matrix,m->cols,l);
-        e = cudaGetLastError();
-        CHECK_CUDA(e);
+        CHECK_CUDA(cudaGetLastError());
         dl_fixColumn<<<m->rows,m->cols>>>(matrix,m->cols,l);
-        e = cudaGetLastError();
-        CHECK_CUDA(e);
+        CHECK_CUDA(cudaGetLastError());
     }
     ExecutionStats stats = prof.end();
 

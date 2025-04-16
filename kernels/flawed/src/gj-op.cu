@@ -33,21 +33,17 @@ ExecutionStats op_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
     CudaProfiling prof;
     cudaError_t e;
     double* matrix;
-    e = cudaMalloc(&matrix,m->cols*m->rows*sizeof(double));
-    CHECK_CUDA(e);
-    e = cudaMemcpy(matrix,m->data,m->cols*m->rows*sizeof(double),cudaMemcpyHostToDevice);
-    CHECK_CUDA(e);
+    CHECK_CUDA(cudaMalloc(&matrix,m->cols*m->rows*sizeof(double)));
+    CHECK_CUDA(cudaMemcpy(matrix,m->data,m->cols*m->rows*sizeof(double),cudaMemcpyHostToDevice));
     
     prof.begin();
     for(int l=0;l<m->rows;l++){
         op_fixRow<<<1,m->cols,m->cols*sizeof(double)>>>(matrix,m->cols,l);
-        e = cudaGetLastError();
-        CHECK_CUDA(e);
+        CHECK_CUDA(cudaGetLastError());
         e = cudaDeviceSynchronize();//bug
         CHECK_CUDA(e);
         op_fixColumn<<<m->rows,m->cols>>>(matrix,m->cols,l);
-        e = cudaGetLastError();
-        CHECK_CUDA(e);
+        CHECK_CUDA(cudaGetLastError());
         e = cudaDeviceSynchronize();//bug
         CHECK_CUDA(e);
     }
@@ -55,10 +51,8 @@ ExecutionStats op_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
 
     GJ_Utils::GJ_Matrix out_gj = GJ_Utils::GJ_Matrix(m->rows);
 
-    e = cudaMemcpy(out_gj.data,matrix,out_gj.cols*out_gj.rows*sizeof(double),cudaMemcpyDeviceToHost);
-    CHECK_CUDA(e);
-    e = cudaFree(matrix);
-    CHECK_CUDA(e);
+    CHECK_CUDA(cudaMemcpy(out_gj.data,matrix,out_gj.cols*out_gj.rows*sizeof(double),cudaMemcpyDeviceToHost));
+    CHECK_CUDA(cudaFree(matrix));
 
     GJ_Utils::S_Matrix s = out_gj.get_right_side();
 
