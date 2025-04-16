@@ -110,7 +110,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Process bigram argument")
     parser.add_argument("bigram", type=str, help="A 2-character bigram identifier")
-    parser.add_argument("desc", type=str, nargs='+', help="The description of the bug")
+    parser.add_argument("desc", type=str, nargs='*', default=[], help="The description of the bug (optional)")
 
     args = parser.parse_args()
 
@@ -118,7 +118,7 @@ if __name__ == "__main__":
     if len(bigram) != 2:
         print("Error: Bigram must be exactly 2 characters long.")
         sys.exit(1)
-    description = " ".join(args.desc)    
+    description = " ".join(args.desc) if args.desc else ""
 
     template_dir = "../kernels/reference"
     output_dir = "../kernels/flawed"
