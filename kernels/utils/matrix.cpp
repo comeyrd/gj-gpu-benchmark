@@ -59,6 +59,31 @@ void S_Matrix::fill_random_L(){
     }
 }
 
+void S_Matrix::fill_random_U(){
+    Random_Number_Gen* gen = Random_Number_Gen::instance();
+    for(int i=0;i < this->rows;i++){
+        for(int j=i ;j<this->cols;j++){
+            double random_nbr = gen->generate();
+            if (i == j&&random_nbr==0){
+                random_nbr +=1;
+            }
+            this->data[i * this->cols + j] =random_nbr;
+        }
+    }
+}
+
+S_Matrix S_Matrix::L_random(int size){
+    S_Matrix m = S_Matrix(size);
+    m.fill_random_L();
+    return m;
+}
+
+S_Matrix S_Matrix::U_random(int size){
+    S_Matrix m = S_Matrix(size);
+    m.fill_random_U();
+    return m;
+}
+
 void Matrix::to_csv(std::ostream &output){
     output << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10);
     for(int i=0;i<this->rows;i++){
@@ -72,18 +97,6 @@ void Matrix::to_csv(std::ostream &output){
     output << std::endl;
 }
 
-void S_Matrix::fill_random_U(){
-    Random_Number_Gen* gen = Random_Number_Gen::instance();
-    for(int i=0;i < this->rows;i++){
-        for(int j=i ;j<this->cols;j++){
-            double random_nbr = gen->generate();
-            if (i == j&&random_nbr==0){
-                random_nbr +=1;
-            }
-            this->data[i * this->cols + j] =random_nbr;
-        }
-    }
-}
 
 S_Matrix S_Matrix::times(const S_Matrix* m2){
     if (this->rows != m2->rows || this->cols != m2->cols) {
@@ -155,6 +168,23 @@ GJ_Matrix::GJ_Matrix(S_Matrix* matrix) : Matrix(matrix->rows, matrix->cols * 2) 
         }
     }
 }
+GJ_Matrix::GJ_Matrix(S_Matrix matrix) : Matrix(matrix.rows, matrix.cols * 2) {
+    for (int i = 0; i < matrix.rows; ++i) {
+        for (int j = 0; j < matrix.cols; ++j) {
+            this->data[i * this->cols + j] = matrix.data[i * matrix.cols + j];
+        }
+    }
+
+    for (int i = 0; i < matrix.rows; ++i) {
+        for (int j = matrix.cols; j < this->cols; ++j) {
+            if (i == (j - matrix.cols)) {
+                this->data[i * this->cols + j] = 1;  
+            } else {
+                this->data[i * this->cols + j] = 0; 
+            }
+        }
+    }
+}
 
 
 void GJ_Matrix::print(){
@@ -194,5 +224,12 @@ S_Matrix GJ_Matrix::get_left_side(){
         }
     }
     return rs;
+}
+
+
+S_Matrix S_Matrix::Random_Invertible(int size){
+    S_Matrix l = S_Matrix::L_random(size);
+    S_Matrix u  = S_Matrix::U_random(size);
+    return l.times(&u);
 }
 

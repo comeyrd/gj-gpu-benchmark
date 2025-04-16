@@ -26,16 +26,20 @@ namespace GJ_Utils{
         public:
             S_Matrix(int size) : Matrix(size, size) {}
             S_Matrix(double* external_data, int size) : Matrix(external_data,size, size) {}
+            static S_Matrix L_random(int size);
+            static S_Matrix U_random(int size);
             void fill_random_L();
             void fill_random_U();
             S_Matrix times(const S_Matrix *m2);
             double is_inverse(const S_Matrix *inverse);
-            
+            static S_Matrix Random_Invertible(int size);
+
     };
     
     class GJ_Matrix : public Matrix {
         public:
             GJ_Matrix(S_Matrix* matrix);
+            GJ_Matrix(S_Matrix matrix);
             GJ_Matrix(double* allocated,S_Matrix* matrix);
             GJ_Matrix(double* allocated, int rows, int cols) : Matrix(allocated,rows,cols){}
             GJ_Matrix(int rows): Matrix(rows,rows*2){};

@@ -23,6 +23,17 @@ endif()
 
 add_subdirectory(kernels)
 
-add_executable(main main.cpp)
+add_executable(gaussjordan main.cpp)
 
-target_link_libraries(main PRIVATE kernels)
+
+include(FetchContent)
+FetchContent_Declare(
+  argparse
+  GIT_REPOSITORY https://github.com/p-ranav/argparse.git
+  GIT_TAG        master
+)
+FetchContent_MakeAvailable(argparse)
+
+target_include_directories(gaussjordan PRIVATE ${CMAKE_SOURCE_DIR}/include)
+
+target_link_libraries(gaussjordan PRIVATE kernels argparse)

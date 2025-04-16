@@ -52,7 +52,7 @@ ExecutionStats ml_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
     e = cudaMemcpy(out_gj.data,matrix,out_gj.cols*out_gj.rows*sizeof(double),cudaMemcpyDeviceToHost);
     CHECK_CUDA(e);
     //e = cudaFree(matrix);BUG
-    CHECK_CUDA(e);
+    //CHECK_CUDA(e);
 
     GJ_Utils::S_Matrix s = out_gj.get_right_side();
 
