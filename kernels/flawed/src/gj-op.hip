@@ -1,7 +1,9 @@
-#include "gj-reference.hpp"
+#include "gj-op.hpp"
 #include "hip-utils.hpp"
 
-__global__ void reference_fixRow(double *matrix, int size,int rowId){
+//Useless synchronisation between host and device
+
+__global__ void op_fixRow(double *matrix, int size,int rowId){
     extern __shared__ double Ri[];
     __shared__ double Aii;
 
@@ -14,7 +16,7 @@ __global__ void reference_fixRow(double *matrix, int size,int rowId){
     matrix[size*rowId+colId] = Ri[colId];
 }
 
-__global__ void reference_fixColumn(double *matrix, int size, int colId){
+__global__ void op_fixColumn(double *matrix, int size, int colId){
     int col_x = threadIdx.x;
     int row_x = blockIdx.x;
     __shared__ double ratio;
@@ -27,18 +29,20 @@ __global__ void reference_fixColumn(double *matrix, int size, int colId){
     }
 }
 
-ExecutionStats reference_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
+ExecutionStats op_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
     HipProfiling prof;
-
     double* matrix;
     CHECK_HIP(hipMalloc(&matrix,m->cols*m->rows*sizeof(double)));
     CHECK_HIP(hipMemcpy(matrix,m->data,m->cols*m->rows*sizeof(double),hipMemcpyHostToDevice));
+    
     prof.begin();
     for(int l=0;l<m->rows;l++){
-        reference_fixRow<<<1,m->cols,m->cols*sizeof(double)>>>(matrix,m->cols,l);
+        op_fixRow<<<1,m->cols,m->cols*sizeof(double)>>>(matrix,m->cols,l);
         CHECK_HIP(hipGetLastError());
-        reference_fixColumn<<<m->rows,m->cols>>>(matrix,m->cols,l);
+        CHECK_HIP(hipDeviceSynchronize());//bug
+        op_fixColumn<<<m->rows,m->cols>>>(matrix,m->cols,l);
         CHECK_HIP(hipGetLastError());
+        CHECK_HIP(hipDeviceSynchronize());//bug
     }
     ExecutionStats stats = prof.end();
 

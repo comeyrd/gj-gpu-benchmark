@@ -1,7 +1,7 @@
-#include "gj-reference.hpp"
+#include "gj-ml.hpp"
 #include "hip-utils.hpp"
-
-__global__ void reference_fixRow(double *matrix, int size,int rowId){
+//Leaking Memory
+__global__ void ml_fixRow(double *matrix, int size,int rowId){
     extern __shared__ double Ri[];
     __shared__ double Aii;
 
@@ -14,7 +14,7 @@ __global__ void reference_fixRow(double *matrix, int size,int rowId){
     matrix[size*rowId+colId] = Ri[colId];
 }
 
-__global__ void reference_fixColumn(double *matrix, int size, int colId){
+__global__ void ml_fixColumn(double *matrix, int size, int colId){
     int col_x = threadIdx.x;
     int row_x = blockIdx.x;
     __shared__ double ratio;
@@ -27,7 +27,7 @@ __global__ void reference_fixColumn(double *matrix, int size, int colId){
     }
 }
 
-ExecutionStats reference_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
+ExecutionStats ml_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
     HipProfiling prof;
 
     double* matrix;
@@ -35,9 +35,9 @@ ExecutionStats reference_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
     CHECK_HIP(hipMemcpy(matrix,m->data,m->cols*m->rows*sizeof(double),hipMemcpyHostToDevice));
     prof.begin();
     for(int l=0;l<m->rows;l++){
-        reference_fixRow<<<1,m->cols,m->cols*sizeof(double)>>>(matrix,m->cols,l);
+        ml_fixRow<<<1,m->cols,m->cols*sizeof(double)>>>(matrix,m->cols,l);
         CHECK_HIP(hipGetLastError());
-        reference_fixColumn<<<m->rows,m->cols>>>(matrix,m->cols,l);
+        ml_fixColumn<<<m->rows,m->cols>>>(matrix,m->cols,l);
         CHECK_HIP(hipGetLastError());
     }
     ExecutionStats stats = prof.end();
@@ -45,7 +45,8 @@ ExecutionStats reference_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
     GJ_Utils::GJ_Matrix out_gj = GJ_Utils::GJ_Matrix(m->rows);
 
     CHECK_HIP(hipMemcpy(out_gj.data,matrix,out_gj.cols*out_gj.rows*sizeof(double),hipMemcpyDeviceToHost));
-    CHECK_HIP(hipFree(matrix));
+    //e = hipFree(matrix);BUG
+    //CHECK_HIP(e);
 
     GJ_Utils::S_Matrix s = out_gj.get_right_side();
 
