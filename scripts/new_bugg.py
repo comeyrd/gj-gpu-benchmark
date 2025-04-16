@@ -1,8 +1,9 @@
 import os
-
+import argparse
+import sys
 reference_file = "gj-reference"
 
-def copy_and_replace_bug(bigram: str, template_dir, output_dir,file_extension):
+def copy_and_replace_bug(bigram: str, template_dir, output_dir,file_extension,description=""):
     bigram_upper = bigram.upper()
     bigram_lower = bigram.lower()
     template_file = f"{template_dir}/{reference_file}{file_extension}"
@@ -18,7 +19,13 @@ def copy_and_replace_bug(bigram: str, template_dir, output_dir,file_extension):
     content = content.replace("reference", bigram_lower)
     content = content.replace("Reference", bigram_upper)
     if file_extension == ".cu":
-        output_dir = output_dir + "/src"
+        lines = content.splitlines()
+        for i, line in enumerate(lines):
+            if '#include "cuda-utils.hpp"' in line:
+                lines.insert(i + 1, "//"+description)
+                break
+        content = "\n".join(lines)
+        output_dir = os.path.join(output_dir, "src")
     elif file_extension == ".hpp":
         output_dir = output_dir + "/include"
     else:
@@ -49,7 +56,10 @@ def add_gj_include(bigram: str, flawed_path):
     # Find the line before the closing #endif to insert above it
     for i in reversed(range(len(lines))):
         if lines[i].strip().startswith("#endif"):
-            lines.insert(i, include_line)
+            if i > 0 and lines[i - 1].strip() == "":
+                lines.insert(i - 1, include_line)
+            else:
+                lines.insert(i, include_line)
             break
 
     with open(flawed_path, 'w') as f:
@@ -97,11 +107,23 @@ def add_kernel_registration(bigram: str, utils_path="utils.cu"):
 
 
 if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description="Process bigram argument")
+    parser.add_argument("bigram", type=str, help="A 2-character bigram identifier")
+    parser.add_argument("desc", type=str, nargs='+', help="The description of the bug")
+
+    args = parser.parse_args()
+
+    bigram = args.bigram
+    if len(bigram) != 2:
+        print("Error: Bigram must be exactly 2 characters long.")
+        sys.exit(1)
+    description = " ".join(args.desc)    
+
     template_dir = "../kernels/reference"
-    bigram="ss"
     output_dir = "../kernels/flawed"
     copy_and_replace_bug(bigram,template_dir,output_dir,".hpp")
-    copy_and_replace_bug(bigram,template_dir,output_dir,".cu")
+    copy_and_replace_bug(bigram,template_dir,output_dir,".cu",description)
     flawed_dir = "../kernels/flawed/include/gj-flawed.hpp"
     add_gj_include(bigram,flawed_dir)
     cuda_utils_dir = "../kernels/cuda/cuda-utils.cu"
