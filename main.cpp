@@ -1,9 +1,10 @@
 #include "main.h"
 
+
 int main(int argc, char **argv) {
     retreive_kernels();
 
-    argparse::ArgumentParser program("gaussjordan");
+    argparse::ArgumentParser program("gaussjordan",VERSION_STRING);
     bool all;
     bool list;
     int repetitions = 5;
