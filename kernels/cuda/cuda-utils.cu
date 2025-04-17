@@ -19,7 +19,7 @@ void retreive_kernels(){
     km->registerKernel("DA",std::make_shared<DAGaussJordan>());
     km->registerKernel("CP",std::make_shared<CPGaussJordan>());
     km->registerKernel("DL",std::make_shared<DLGaussJordan>());
-    km->registerKernel("ML",std::make_shared<DLGaussJordan>());
+    km->registerKernel("ML",std::make_shared<MLGaussJordan>());
 }
 
 

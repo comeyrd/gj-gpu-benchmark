@@ -62,7 +62,7 @@ Kernel_umap find_kernel(std::vector<std::string> kernel_name_list) {
     for (std::string kernel_name : kernel_name_list) {
         try {
             filtered[kernel_name] = kernels_map.at(kernel_name);
-        } catch (const std::exception error) {
+        } catch (const std::exception &error) {
             std::cerr << "Kernel '" << kernel_name << "' not found" << std::endl;
         }
     }
