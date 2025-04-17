@@ -25,17 +25,21 @@ def modify_hipified_code(code):
 
     return "\n".join(modified_lines) + "\n"
 
-def convert_cuda_files_in_folder(folder_path,include_path):
+def convert_cuda_files_in_folder(folder_path,include_path,recode=False):
     for root, _, files in os.walk(folder_path):
         for filename in files:
             if filename.endswith(".cu"):
+                file_exists = False
                 input_path = os.path.join(root, filename)
                 output_path = os.path.splitext(input_path)[0] + ".hip"
 
                 # Skip if .hip file already exists
                 if os.path.exists(output_path):
                     print(f"Skipping (already exists): {output_path}")
-                    continue
+                    if recode:
+                        file_exists = True
+                    else:
+                        continue
 
                 print(f"Converting: {input_path} -> {output_path}")
 
@@ -49,12 +53,13 @@ def convert_cuda_files_in_folder(folder_path,include_path):
                     out_file.write(modified_code)
 
                 bigram = filename.split("-")[-1].replace(".cu", "")
-                add_kernel_registration(bigram, include_path)
+                if not file_exists:
+                    add_kernel_registration(bigram, include_path)
 
 if __name__ == "__main__":
     folder = "../kernels/flawed/src/"
     include = "../kernels/hip/hip-utils.hip"
-    convert_cuda_files_in_folder(folder,include)
+    convert_cuda_files_in_folder(folder,include,True)
 
     #folder = "../kernels/reference/"
     #convert_cuda_files_in_folder(folder)

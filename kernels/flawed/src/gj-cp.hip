@@ -16,7 +16,7 @@ __global__ void cp_fixRow(double *matrix, int size,int rowId){
 
 __global__ void cp_fixColumn(double *matrix, int n_col, int colId,int n_row ){
     int col_x = threadIdx.x;
-    __shared__ double ratio;
+    double ratio;
     for(int row_x = 0;row_x<n_row;row_x++){
         if(row_x!=colId && matrix[row_x*n_col + colId] != 0){
             if(col_x == 0)
