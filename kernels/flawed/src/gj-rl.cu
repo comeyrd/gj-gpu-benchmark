@@ -1,7 +1,7 @@
-#include "gj-ml.hpp"
-#include "hip-utils.hpp"
+#include "gj-rl.hpp"
+#include "cuda-utils.hpp"
 //Leaking Memory
-__global__ void ml_fixRow(double *matrix, int size,int rowId){
+__global__ void rl_fixRow(double *matrix, int size,int rowId){
     extern __shared__ double Ri[];
     __shared__ double Aii;
 
@@ -14,7 +14,7 @@ __global__ void ml_fixRow(double *matrix, int size,int rowId){
     matrix[size*rowId+colId] = Ri[colId];
 }
 
-__global__ void ml_fixColumn(double *matrix, int size, int colId){
+__global__ void rl_fixColumn(double *matrix, int size, int colId){
     int col_x = threadIdx.x;
     int row_x = blockIdx.x;
     __shared__ double ratio;
@@ -27,26 +27,26 @@ __global__ void ml_fixColumn(double *matrix, int size, int colId){
     }
 }
 
-ExecutionStats ml_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
-    HipProfiling prof;
+ExecutionStats rl_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
+    CudaProfiling prof;
 
     double* matrix;
-    CHECK_HIP(hipMalloc(&matrix,m->cols*m->rows*sizeof(double)));
-    CHECK_HIP(hipMemcpy(matrix,m->data,m->cols*m->rows*sizeof(double),hipMemcpyHostToDevice));
+    CHECK_CUDA(cudaMalloc(&matrix,m->cols*m->rows*sizeof(double)));
+    CHECK_CUDA(cudaMemcpy(matrix,m->data,m->cols*m->rows*sizeof(double),cudaMemcpyHostToDevice));
     prof.begin();
     for(int l=0;l<m->rows;l++){
-        ml_fixRow<<<1,m->cols,m->cols*sizeof(double)>>>(matrix,m->cols,l);
-        CHECK_HIP(hipGetLastError());
-        ml_fixColumn<<<m->rows,m->cols>>>(matrix,m->cols,l);
-        CHECK_HIP(hipGetLastError());
+        rl_fixRow<<<1,m->cols,m->cols*sizeof(double)>>>(matrix,m->cols,l);
+        CHECK_CUDA(cudaGetLastError());
+        rl_fixColumn<<<m->rows,m->cols>>>(matrix,m->cols,l);
+        CHECK_CUDA(cudaGetLastError());
     }
     ExecutionStats stats = prof.end();
 
     GJ_Utils::GJ_Matrix out_gj = GJ_Utils::GJ_Matrix(m->rows);
 
-    CHECK_HIP(hipMemcpy(out_gj.data,matrix,out_gj.cols*out_gj.rows*sizeof(double),hipMemcpyDeviceToHost));
+    CHECK_CUDA(cudaMemcpy(out_gj.data,matrix,out_gj.cols*out_gj.rows*sizeof(double),cudaMemcpyDeviceToHost));
 
-    //CHECK_HIP(hipFree(matrix));//BUG
+    //CHECK_CUDA(cudaFree(matrix));//BUG
 
     GJ_Utils::S_Matrix s = out_gj.get_right_side();
 

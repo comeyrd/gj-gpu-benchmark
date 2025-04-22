@@ -14,7 +14,7 @@ namespace GJ_Utils{
             double * data;
             int rows,cols;
             Matrix(int rows, int cols);
-            Matrix(double* externalData, int rows, int cols): rows(rows), cols(cols), data(externalData), owns_data(false) {}
+            Matrix(double* externalData, int rows, int cols):  owns_data(false),data(externalData),rows(rows), cols(cols){}
             ~Matrix();
             double& at(int row, int col);
             void print();
@@ -33,6 +33,7 @@ namespace GJ_Utils{
             S_Matrix times(const S_Matrix *m2);
             double is_inverse(const S_Matrix *inverse);
             static S_Matrix Random_Invertible(int size);
+            double mean_difference(const S_Matrix *m2);
 
     };
     

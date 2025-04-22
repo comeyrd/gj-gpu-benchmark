@@ -1,9 +1,8 @@
-#include "gj-rc.hpp"
+#include "gj-rl.hpp"
 #include "hip-utils.hpp"
-//Array with a fixed size, unused memory
-
-__global__ void rc_fixRow(double *matrix, int size,int rowId){
-    __shared__ double Ri[1024];//bug
+//Leaking Memory
+__global__ void rl_fixRow(double *matrix, int size,int rowId){
+    extern __shared__ double Ri[];
     __shared__ double Aii;
 
     int colId = threadIdx.x;
@@ -11,11 +10,11 @@ __global__ void rc_fixRow(double *matrix, int size,int rowId){
     if(colId == rowId)
         Aii = Ri[rowId];
     __syncthreads();
-    Ri[colId] = Ri[colId] / Aii;
+    Ri[colId] = Ri[colId]/Aii;
     matrix[size*rowId+colId] = Ri[colId];
 }
 
-__global__ void rc_fixColumn(double *matrix, int size, int colId){
+__global__ void rl_fixColumn(double *matrix, int size, int colId){
     int col_x = threadIdx.x;
     int row_x = blockIdx.x;
     __shared__ double ratio;
@@ -28,16 +27,17 @@ __global__ void rc_fixColumn(double *matrix, int size, int colId){
     }
 }
 
-ExecutionStats rc_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
+ExecutionStats rl_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
     HipProfiling prof;
+
     double* matrix;
     CHECK_HIP(hipMalloc(&matrix,m->cols*m->rows*sizeof(double)));
     CHECK_HIP(hipMemcpy(matrix,m->data,m->cols*m->rows*sizeof(double),hipMemcpyHostToDevice));
     prof.begin();
     for(int l=0;l<m->rows;l++){
-        rc_fixRow<<<1,m->cols>>>(matrix,m->cols,l);
+        rl_fixRow<<<1,m->cols,m->cols*sizeof(double)>>>(matrix,m->cols,l);
         CHECK_HIP(hipGetLastError());
-        rc_fixColumn<<<m->rows,m->cols>>>(matrix,m->cols,l);
+        rl_fixColumn<<<m->rows,m->cols>>>(matrix,m->cols,l);
         CHECK_HIP(hipGetLastError());
     }
     ExecutionStats stats = prof.end();
@@ -45,7 +45,8 @@ ExecutionStats rc_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
     GJ_Utils::GJ_Matrix out_gj = GJ_Utils::GJ_Matrix(m->rows);
 
     CHECK_HIP(hipMemcpy(out_gj.data,matrix,out_gj.cols*out_gj.rows*sizeof(double),hipMemcpyDeviceToHost));
-    CHECK_HIP(hipFree(matrix));
+
+    //CHECK_HIP(hipFree(matrix));//BUG
 
     GJ_Utils::S_Matrix s = out_gj.get_right_side();
 

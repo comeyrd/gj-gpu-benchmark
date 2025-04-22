@@ -1,4 +1,4 @@
-#include "gj-rc.hpp"
+#include "gj-rm.hpp"
 #include "cuda-utils.hpp"
 //Array with a fixed size, unused memory
 

@@ -15,11 +15,11 @@ void retreive_kernels(){
     KernelsManager* km = KernelsManager::instance();
     km->registerKernel("BS", std::make_shared<ReferenceGaussJordan>());
     km->registerKernel("OP",std::make_shared<OPGaussJordan>());
-    km->registerKernel("RC",std::make_shared<RCGaussJordan>());
+    km->registerKernel("RM",std::make_shared<RMGaussJordan>());
     km->registerKernel("DA",std::make_shared<DAGaussJordan>());
     km->registerKernel("CP",std::make_shared<CPGaussJordan>());
     km->registerKernel("DL",std::make_shared<DLGaussJordan>());
-    km->registerKernel("ML",std::make_shared<MLGaussJordan>());
+    km->registerKernel("RL",std::make_shared<RLGaussJordan>());
     km->registerKernel("YL", std::make_shared<YLGaussJordan>());
 }
 
