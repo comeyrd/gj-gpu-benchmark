@@ -58,7 +58,7 @@ ExecutionStats dl_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
         CHECK_HIP(hipMemcpy(out_gj.data+(l*m->cols),r_matrix[l],m->cols*sizeof(double),hipMemcpyDeviceToHost));
         CHECK_HIP(hipFree(r_matrix[l]));
     }
-    hipFree(matrix);
+    CHECK_HIP(hipFree(matrix));
     GJ_Utils::S_Matrix s = out_gj.get_right_side();
 
     double* inner_out =  new double[s.rows * s.cols]();
