@@ -33,7 +33,7 @@ ExecutionStats dl_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
     double** h_matrix = new double*[m->rows]; 
     for (int l=0;l<m->rows;l++){
         CHECK_HIP(hipMalloc(&h_matrix[l],m->cols*sizeof(double)));
-        CHECK_HIP(hipMemcpy(h_matrix[l],m->data+(l*m->cols),m->cols*sizeof(double),hipMemcpyHostToDevice));
+        CHECK_HIP(hipMemcpy(h_matrix[l],m->data.get()+(l*m->cols),m->cols*sizeof(double),hipMemcpyHostToDevice));
     }
     double** matrix;
     CHECK_HIP(hipMalloc(&matrix, m->rows * sizeof(double*)));
@@ -55,16 +55,12 @@ ExecutionStats dl_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
     CHECK_HIP(hipMemcpy(r_matrix, matrix, m->rows * sizeof(double*), hipMemcpyDeviceToHost));
 
     for (int l=0;l<m->rows;l++){
-        CHECK_HIP(hipMemcpy(out_gj.data+(l*m->cols),r_matrix[l],m->cols*sizeof(double),hipMemcpyDeviceToHost));
+        CHECK_HIP(hipMemcpy(out_gj.data.get()+(l*m->cols),r_matrix[l],m->cols*sizeof(double),hipMemcpyDeviceToHost));
         CHECK_HIP(hipFree(r_matrix[l]));
     }
     CHECK_HIP(hipFree(matrix));
     GJ_Utils::S_Matrix s = out_gj.get_right_side();
-
-    double* inner_out =  new double[s.rows * s.cols]();
-    memcpy(inner_out,s.data,s.rows*s.cols*sizeof(double));
-    bool o_owns_mem = true;
-    o->update_memory(inner_out,o_owns_mem,s.rows,s.cols);
+    *o = out_gj.get_right_side();
 
     return stats;
 };

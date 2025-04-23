@@ -18,6 +18,7 @@ struct KernelStats {
     int size;
 };
 
+std::string DEFAULT_MATRIX_FILE = "matrix.csv";
 typedef std::unordered_map<std::string, KernelStats> KStats_umap;
 
 inline std::ostream &operator<<(std::ostream &os, KernelStats k_stat) {
@@ -26,5 +27,5 @@ inline std::ostream &operator<<(std::ostream &os, KernelStats k_stat) {
 }
 
 Kernel_umap find_kernel(std::vector<std::string> kernel_name_list);
-KStats_umap do_kernel(Kernel_umap kernels, int matrix_size, int repetitions);
+KStats_umap do_kernel(Kernel_umap kernels, int matrix_size, int repetitions,bool reuse);
 void list_kernels();

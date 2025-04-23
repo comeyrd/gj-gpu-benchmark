@@ -3,29 +3,51 @@
 #include <tuple>
 #include <mutex>
 #include <random>
+#include <memory>
 
 namespace GJ_Utils{
 
 
     class Matrix {
-        private:
-        bool owns_data;
+        friend class S_Matrix; 
         public:
-            double * data;
             int rows,cols;
-            Matrix(int rows, int cols);
-            Matrix(double* externalData, int rows, int cols):  owns_data(false),data(externalData),rows(rows), cols(cols){}
-            ~Matrix();
-            double& at(int row, int col);
+            std::unique_ptr<double[]> data;
+            Matrix() = default;
+            Matrix(int rows, int cols): rows(rows), cols(cols), data(std::make_unique<double[]>(rows * cols)) {}
+            Matrix(std::unique_ptr<double[]> data_ptr, int rows, int cols):  rows(rows), cols(cols),data(std::move(data_ptr)){}
+            ~Matrix() = default;
             void print();
-            void update_memory(double* ptr,bool owns,int row,int col);
+            void update_memory(double* ptr,int row,int col);
             void to_csv(std::ostream &output);
+            static Matrix from_csv(std::istream &in);
+
+            Matrix& operator=(const Matrix& other) {
+                if (this != &other) {
+                    rows = other.rows;
+                    cols = other.cols;
+                    data = std::make_unique<double[]>(other.rows * other.cols);
+                    std::copy(other.data.get(), other.data.get() + (other.rows * other.cols), data.get());
+                }
+                return *this;
+            }
+            Matrix& operator=(Matrix&& other) noexcept {
+                if (this != &other) {
+                    rows = other.rows;
+                    cols = other.cols;
+                    data = std::move(other.data);
+                    other.rows = 0;
+                    other.cols = 0;
+                }
+            return *this;}
+            Matrix(Matrix&&) = default;
     };
 
     class S_Matrix : public Matrix {
         public:
+            S_Matrix() = default;
             S_Matrix(int size) : Matrix(size, size) {}
-            S_Matrix(double* external_data, int size) : Matrix(external_data,size, size) {}
+            S_Matrix(std::unique_ptr<double[]> data_ptr, int size) : Matrix(std::move(data_ptr),size, size) {}
             static S_Matrix L_random(int size);
             static S_Matrix U_random(int size);
             void fill_random_L();
@@ -34,6 +56,14 @@ namespace GJ_Utils{
             double is_inverse(const S_Matrix *inverse);
             static S_Matrix Random_Invertible(int size);
             double mean_difference(const S_Matrix *m2);
+            static S_Matrix from_csv(std::istream &in){
+                Matrix base = Matrix::from_csv(in);
+                if(base.rows != base.cols){
+                    throw std::runtime_error("Input is not a square matrix");
+                }
+                S_Matrix result(std::move(base.data), base.rows);
+                return result;
+            };
 
     };
     
@@ -41,8 +71,8 @@ namespace GJ_Utils{
         public:
             GJ_Matrix(S_Matrix* matrix);
             GJ_Matrix(S_Matrix matrix);
-            GJ_Matrix(double* allocated,S_Matrix* matrix);
-            GJ_Matrix(double* allocated, int rows, int cols) : Matrix(allocated,rows,cols){}
+            GJ_Matrix(std::unique_ptr<double[]> data_ptr,S_Matrix* matrix);
+            GJ_Matrix(std::unique_ptr<double[]> data_ptr, int rows, int cols) : Matrix(std::move(data_ptr),rows,cols){}
             GJ_Matrix(int rows): Matrix(rows,rows*2){};
             void print();
             S_Matrix get_right_side();

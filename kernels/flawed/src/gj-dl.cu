@@ -33,7 +33,7 @@ ExecutionStats dl_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
     double** h_matrix = new double*[m->rows]; 
     for (int l=0;l<m->rows;l++){
         CHECK_CUDA(cudaMalloc(&h_matrix[l],m->cols*sizeof(double)));
-        CHECK_CUDA(cudaMemcpy(h_matrix[l],m->data+(l*m->cols),m->cols*sizeof(double),cudaMemcpyHostToDevice));
+        CHECK_CUDA(cudaMemcpy(h_matrix[l],m->data.get()+(l*m->cols),m->cols*sizeof(double),cudaMemcpyHostToDevice));
     }
     double** matrix;
     CHECK_CUDA(cudaMalloc(&matrix, m->rows * sizeof(double*)));
@@ -55,16 +55,12 @@ ExecutionStats dl_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
     CHECK_CUDA(cudaMemcpy(r_matrix, matrix, m->rows * sizeof(double*), cudaMemcpyDeviceToHost));
 
     for (int l=0;l<m->rows;l++){
-        CHECK_CUDA(cudaMemcpy(out_gj.data+(l*m->cols),r_matrix[l],m->cols*sizeof(double),cudaMemcpyDeviceToHost));
+        CHECK_CUDA(cudaMemcpy(out_gj.data.get()+(l*m->cols),r_matrix[l],m->cols*sizeof(double),cudaMemcpyDeviceToHost));
         CHECK_CUDA(cudaFree(r_matrix[l]));
     }
     CHECK_CUDA(cudaFree(matrix));
     GJ_Utils::S_Matrix s = out_gj.get_right_side();
-
-    double* inner_out =  new double[s.rows * s.cols]();
-    memcpy(inner_out,s.data,s.rows*s.cols*sizeof(double));
-    bool o_owns_mem = true;
-    o->update_memory(inner_out,o_owns_mem,s.rows,s.cols);
+    *o = out_gj.get_right_side();
 
     return stats;
 };

@@ -1,12 +1,12 @@
 #include "main.h"
 
-
 int main(int argc, char **argv) {
     retreive_kernels();
 
-    argparse::ArgumentParser program("gaussjordan",VERSION_STRING);
+    argparse::ArgumentParser program("gaussjordan", VERSION_STRING);
     bool all;
     bool list;
+    bool reuse;
     int repetitions = 5;
     int matrix_size = 100;
     std::vector<std::string> kernel;
@@ -20,6 +20,7 @@ int main(int argc, char **argv) {
     program.add_argument("--repetitions", "-r").store_into(repetitions);
     program.add_argument("--matrix-size", "-m").store_into(matrix_size);
 
+    program.add_argument("--reuse").store_into(reuse);
     try {
         program.parse_args(argc, argv);
     } catch (const std::exception &err) {
@@ -31,7 +32,7 @@ int main(int argc, char **argv) {
     if (all) {
         Kernel_umap Kmap = KernelsManager::instance()->getKernels();
 
-        KStats_umap ks = do_kernel(Kmap, matrix_size, repetitions);
+        KStats_umap ks = do_kernel(Kmap, matrix_size, repetitions, reuse);
         for (const auto &[name, stats] : ks) {
             std::cout << "Kernel " << name << " " << stats << std::endl;
         }
@@ -39,7 +40,7 @@ int main(int argc, char **argv) {
         list_kernels();
     } else {
         Kernel_umap Kmap = find_kernel(kernel);
-        KStats_umap ks = do_kernel(Kmap, matrix_size, repetitions);
+        KStats_umap ks = do_kernel(Kmap, matrix_size, repetitions, reuse);
         for (const auto &[name, stats] : ks) {
             std::cout << "Kernel " << name << " " << stats << std::endl;
         }
@@ -70,11 +71,32 @@ Kernel_umap find_kernel(std::vector<std::string> kernel_name_list) {
     return filtered;
 }
 
-KStats_umap do_kernel(Kernel_umap kernels, int matrix_size, int repetitions) {
+KStats_umap do_kernel(Kernel_umap kernels, int matrix_size, int repetitions, bool reuse) {
     try {
         GJ_Utils::S_Matrix source = GJ_Utils::S_Matrix::Random_Invertible(matrix_size);
+        bool save = false;
+        if (reuse) {
+            std::ifstream file(DEFAULT_MATRIX_FILE);
+            if (file) {
+                GJ_Utils::S_Matrix from_file = GJ_Utils::S_Matrix::from_csv(file);
+                if(from_file.cols == matrix_size){
+                    std::cout << "Reusing matrix"<<std::endl;
+                    source = from_file;
+                }else{
+                    save = true;
+                }
+            }else{
+                save = true;
+            }
+            if(save){
+                file.close();
+                std::ofstream o_file(DEFAULT_MATRIX_FILE);
+                source.to_csv(o_file);
+            }
+        }
+
         GJ_Utils::GJ_Matrix gj(&source);
-        GJ_Utils::S_Matrix out(matrix_size);
+        GJ_Utils::S_Matrix out(source.cols);
 
         KStats_umap v_e_stat;
         for (const auto &[name, k_func] : kernels) {
@@ -87,7 +109,7 @@ KStats_umap do_kernel(Kernel_umap kernels, int matrix_size, int repetitions) {
             }
             e_stat = e_stat / repetitions;
             mean_err = mean_err / repetitions;
-            KernelStats ks = {e_stat, mean_err, repetitions, matrix_size};
+            KernelStats ks = {e_stat, mean_err, repetitions, source.cols};
             v_e_stat[name] = ks;
         }
         return v_e_stat;

@@ -6,34 +6,24 @@
 double ACCEPTED_MIN = 0.002;
 using namespace GJ_Utils;
 
-Matrix::Matrix(int rows, int cols) : rows(rows), cols(cols) {
-    owns_data = true;
-    data = new double[rows * cols](); // Allocate and initialize to zero
-}
 
-Matrix::~Matrix() {
-    if (owns_data)
-        delete[] data;
-}
-void Matrix::update_memory(double *ptr, bool owns, int row, int col) {
-    if (owns_data)
-        delete[] data;
-    data = ptr;
-    owns_data = owns;
+void Matrix::update_memory(double *ptr, int row, int col) {
+    if (row * col != rows * cols || !data) {
+        // Resize internal storage
+        data = std::make_unique<double[]>(row * col);
+    }
+    std::memcpy(data.get(), ptr, sizeof(double) * row * col);
     rows = row;
     cols = col;
 }
 
-double &Matrix::at(int row, int col) {
-    return data[row * cols + col];
-}
 // TODO use <<
 void Matrix::print() {
     for (int i = 0; i < cols * rows; i++) {
         if (i == 0) {
             std::cout << "[ ";
         }
-        std::cout << std::setw(4) << std::setfill(' ') << std::setprecision(3) << data[i] << " ";
+        std::cout << std::setw(4) << std::setfill(' ') << std::setprecision(3) << this->data[i] << " ";
         if (i == cols * rows - 1) {
             std::cout << "]" << std::endl;
         } else if ((i + 1) % cols == 0 && i != 0) {
@@ -96,6 +86,45 @@ void Matrix::to_csv(std::ostream &output) {
     output << std::endl;
 }
 
+Matrix Matrix::from_csv(std::istream &in) {
+    std::vector<double> values;
+    std::string line;
+    int cols = -1;
+    int rows = 0;
+
+    while (std::getline(in, line)) {
+        if (line.empty()) continue;
+
+        std::stringstream ss(line);
+        std::string token;
+        int current_cols = 0;
+
+        while (std::getline(ss, token, ',')) {
+            // Remove spaces before/after comma
+            size_t start = token.find_first_not_of(" \t");
+            size_t end = token.find_last_not_of(" \t");
+            if (start == std::string::npos) continue;
+
+            std::string clean = token.substr(start, end - start + 1);
+            values.push_back(std::stod(clean));
+            current_cols++;
+        }
+
+        if (cols == -1) cols = current_cols;
+        else if (current_cols != cols) {
+            throw std::runtime_error("Inconsistent number of columns in CSV");
+        }
+
+        rows++;
+    }
+    std::unique_ptr<double[]> data = std::make_unique<double[]>(values.size());
+    std::copy(values.begin(), values.end(), data.get());
+    Matrix m(std::move(data), rows, cols);
+    return m;
+}
+
+
+
 S_Matrix S_Matrix::times(const S_Matrix *m2) {
     if (this->rows != m2->rows || this->cols != m2->cols) {
         throw std::invalid_argument("Matrices must be of the same size for multiplication.");
@@ -142,7 +171,7 @@ double S_Matrix::is_inverse(const S_Matrix *inverse) {
     return mean_error;
 }
 
-GJ_Matrix::GJ_Matrix(double *allocated, S_Matrix *matrix) : Matrix(allocated, matrix->rows, matrix->cols * 2) {
+GJ_Matrix::GJ_Matrix(std::unique_ptr<double[]> data_ptr, S_Matrix *matrix) : Matrix(std::move(data_ptr), matrix->rows, matrix->cols * 2) {
     for (int i = 0; i < matrix->rows; ++i) {
         for (int j = 0; j < matrix->cols; ++j) {
             this->data[i * this->cols + j] = matrix->data[i * matrix->cols + j];
