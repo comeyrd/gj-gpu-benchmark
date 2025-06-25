@@ -11,6 +11,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "version.h"
+#ifndef MAIN_H
+#define MAIN_H
 
 struct KernelStats {
     ExecutionStats e_stats;
@@ -62,3 +64,5 @@ inline std::ostream &operator<<(std::ostream &os, KStats_umap ks){
 Kernel_umap find_kernel(std::vector<std::string> kernel_name_list);
 KStats_umap do_kernel(Kernel_umap kernels, int matrix_size, int repetitions,bool reuse);
 void list_kernels();
+
+#endif
