@@ -52,3 +52,4 @@ ExecutionStats reference_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
 
     return stats;
 };
+REGISTER_KERNEL(ReferenceGaussJordan)
