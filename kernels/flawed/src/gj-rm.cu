@@ -2,7 +2,7 @@
 #include "cuda-utils.hpp"
 //Array with a fixed size, unused memory
 
-__global__ void rc_fixRow(double *matrix, int size,int rowId){
+__global__ void rm_fixRow(double *matrix, int size,int rowId){
     __shared__ double Ri[1024];//bug
     __shared__ double Aii;
 
@@ -15,7 +15,7 @@ __global__ void rc_fixRow(double *matrix, int size,int rowId){
     matrix[size*rowId+colId] = Ri[colId];
 }
 
-__global__ void rc_fixColumn(double *matrix, int size, int colId){
+__global__ void rm_fixColumn(double *matrix, int size, int colId){
     int col_x = threadIdx.x;
     int row_x = blockIdx.x;
     __shared__ double ratio;
@@ -28,16 +28,16 @@ __global__ void rc_fixColumn(double *matrix, int size, int colId){
     }
 }
 
-ExecutionStats rc_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
+ExecutionStats rm_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
     CudaProfiling prof;
     double* matrix;
     CHECK_CUDA(cudaMalloc(&matrix,m->cols*m->rows*sizeof(double)));
     CHECK_CUDA(cudaMemcpy(matrix,m->data.get(),m->cols*m->rows*sizeof(double),cudaMemcpyHostToDevice));
     prof.begin();
     for(int l=0;l<m->rows;l++){
-        rc_fixRow<<<1,m->cols>>>(matrix,m->cols,l);
+        rm_fixRow<<<1,m->cols>>>(matrix,m->cols,l);
         CHECK_CUDA(cudaGetLastError());
-        rc_fixColumn<<<m->rows,m->cols>>>(matrix,m->cols,l);
+        rm_fixColumn<<<m->rows,m->cols>>>(matrix,m->cols,l);
         CHECK_CUDA(cudaGetLastError());
     }
     ExecutionStats stats = prof.end();
@@ -52,3 +52,4 @@ ExecutionStats rc_kernel(GJ_Utils::GJ_Matrix* m,GJ_Utils::S_Matrix* o){
 
     return stats;
 };
+REGISTER_KERNEL(RMGaussJordan)

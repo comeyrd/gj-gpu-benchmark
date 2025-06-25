@@ -1,4 +1,3 @@
-#include "kernels_list.hpp"
 #include "gj-reference.hpp"
 #include "gj-flawed.hpp"
 #include "cuda-utils.hpp"
@@ -10,20 +9,13 @@ void check_cuda_error(cudaError_t error_code,const char* file, int line){
     }
 }
 
-void retreive_kernels(){
+void setup_gpu(){
     cudaSetDevice(0);
-    KernelsManager* km = KernelsManager::instance();
-    km->registerKernel("BS", std::make_shared<ReferenceGaussJordan>());
-    km->registerKernel("OP",std::make_shared<OPGaussJordan>());
-    km->registerKernel("RM",std::make_shared<RMGaussJordan>());
-    km->registerKernel("DA",std::make_shared<DAGaussJordan>());
-    km->registerKernel("CP",std::make_shared<CPGaussJordan>());
-    km->registerKernel("DL",std::make_shared<DLGaussJordan>());
-    km->registerKernel("RL",std::make_shared<RLGaussJordan>());
-    km->registerKernel("YL", std::make_shared<YLGaussJordan>());
 }
 
-
+void reset_state(){
+    cudaDeviceReset();
+}
 
 CudaProfiling::CudaProfiling(){
     CHECK_CUDA(cudaEventCreate(&start));

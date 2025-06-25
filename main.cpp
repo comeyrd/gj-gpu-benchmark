@@ -1,8 +1,6 @@
 #include "main.h"
 
 int main(int argc, char **argv) {
-    retreive_kernels();
-
     argparse::ArgumentParser program("gaussjordan", VERSION_STRING);
     bool all;
     bool list;
@@ -10,17 +8,20 @@ int main(int argc, char **argv) {
     int repetitions = 5;
     int matrix_size = 100;
     std::vector<std::string> kernel;
+    std::string stats_file_path = DEFAULT_STATS_FILE;
 
     auto &group = program.add_mutually_exclusive_group(true);
 
     group.add_argument("-a", "--all").store_into(all);
-    group.add_argument("-k", "--kernel").nargs(argparse::nargs_pattern::at_least_one).store_into(kernel); // Todo maybe list of strings to do multiple kernels ?
+    group.add_argument("-k", "--kernel").nargs(argparse::nargs_pattern::at_least_one).store_into(kernel);
     group.add_argument("-l", "--list-kernels").store_into(list);
 
     program.add_argument("--repetitions", "-r").store_into(repetitions);
     program.add_argument("--matrix-size", "-m").store_into(matrix_size);
-
     program.add_argument("--reuse").store_into(reuse);
+
+    program.add_argument("--stats-file").help("Enables the export of kernel execution stats to a JSON file with the specified PATH").default_value(DEFAULT_STATS_FILE).store_into(stats_file_path);
+    
     try {
         program.parse_args(argc, argv);
     } catch (const std::exception &err) {
@@ -29,20 +30,20 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    if (all) {
-        Kernel_umap Kmap = KernelsManager::instance()->getKernels();
-
-        KStats_umap ks = do_kernel(Kmap, matrix_size, repetitions, reuse);
-        for (const auto &[name, stats] : ks) {
-            std::cout << "Kernel " << name << " " << stats << std::endl;
-        }
-    } else if (list) {
+    if(list){
         list_kernels();
-    } else {
-        Kernel_umap Kmap = find_kernel(kernel);
+    }else{
+        setup_gpu();
+        Kernel_umap Kmap;
+        if(all){
+            Kmap = KernelsManager::instance()->getKernels();
+        }else if(program.is_used("-k")){
+            Kmap = find_kernel(kernel);
+        }
         KStats_umap ks = do_kernel(Kmap, matrix_size, repetitions, reuse);
-        for (const auto &[name, stats] : ks) {
-            std::cout << "Kernel " << name << " " << stats << std::endl;
+        std::cout<<ks;
+        if(program.is_used("--stats-file")){
+            json_to_file(ks,stats_file_path);
         }
     }
 
@@ -111,6 +112,7 @@ KStats_umap do_kernel(Kernel_umap kernels, int matrix_size, int repetitions, boo
             mean_err = mean_err / repetitions;
             KernelStats ks = {e_stat, mean_err, repetitions, source.cols};
             v_e_stat[name] = ks;
+            reset_state();
         }
         return v_e_stat;
     } catch (const std::exception &error) {

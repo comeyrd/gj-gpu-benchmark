@@ -2,3 +2,4 @@ build/
 .vscode/
 venvgj/
 __pycache__
+bin/

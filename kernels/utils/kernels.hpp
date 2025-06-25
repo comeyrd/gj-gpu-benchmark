@@ -60,8 +60,16 @@ class KernelsManager{
             _kernels[name] = kernel;
         };
         
-
 };
 
+#define REGISTER_KERNEL(ClassName) \
+    namespace { \
+        struct ClassName##AutoRegister { \
+            ClassName##AutoRegister() { \
+                KernelsManager::instance()->registerKernel(#ClassName, std::make_shared<ClassName>()); \
+            } \
+        }; \
+        static ClassName##AutoRegister global_##ClassName##AutoRegister; \
+    }
 
 #endif
